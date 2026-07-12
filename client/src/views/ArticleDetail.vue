@@ -10,63 +10,95 @@
       <router-link to="/" class="back-link">← 返回首页</router-link>
     </div>
 
-    <div v-else class="article-content">
-      <div class="article-actions">
-        <router-link to="/" class="back-link">← 返回首页</router-link>
-        <div class="action-buttons" v-if="user">
-          <router-link :to="`/edit/${article.id}`" class="btn-edit">编辑</router-link>
-          <button @click="deleteArticle" class="btn-delete">删除</button>
-        </div>
-      </div>
-
-      <article class="article">
-        <div class="article-cover" v-if="article.cover_url">
-          <img :src="article.cover_url" :alt="article.title" />
-        </div>
-
-        <header class="article-header">
-          <h1>{{ article.title }}</h1>
-          <div class="article-meta">
-            <span class="category-tag">{{ article.category }}</span>
-            <span class="publish-date">{{ formatDate(article.created_at) }}</span>
-            <span v-if="article.updated_at !== article.created_at" class="update-date">
-              更新于 {{ formatDate(article.updated_at) }}
-            </span>
-          </div>
-          <div class="article-tags" v-if="article.tags">
-            <span v-for="tag in tagList" :key="tag" class="tag">{{ tag }}</span>
-          </div>
-        </header>
-
-        <div class="article-body" v-html="renderedContent"></div>
-      </article>
-
-      <!-- 评论区 -->
-      <div class="comments-section">
-        <h3>💬 评论 ({{ comments.length }})</h3>
-
-        <div class="comment-form" v-if="user">
-          <textarea v-model="newComment" placeholder="写下你的评论..." rows="3" maxlength="500"></textarea>
-          <div class="comment-form-footer">
-            <span class="char-count">{{ newComment.length }}/500</span>
-            <button @click="submitComment" :disabled="!newComment.trim() || submitting">发布评论</button>
+    <div v-else class="detail-layout">
+      <!-- 左侧目录导航 -->
+      <aside class="toc-sidebar" v-if="toc.length > 0">
+        <div class="toc-sticky">
+          <h4>📑 目录</h4>
+          <nav class="toc-nav">
+            <a v-for="(item, i) in toc" :key="i" 
+              :class="'toc-' + item.level" 
+              :href="'#' + item.id"
+              @click.prevent="scrollTo(item.id)"
+            >{{ item.text }}</a>
+          </nav>
+          <div class="article-toolbar">
+            <button @click="toggleLike" class="tool-btn" :class="{ liked: liked }">
+              {{ liked ? '❤️' : '🤍' }} {{ article.likes || 0 }}
+            </button>
+            <button @click="toggleFavorite" class="tool-btn" :class="{ favorited: favorited }">
+              {{ favorited ? '⭐' : '☆' }} 收藏
+            </button>
+            <button @click="shareArticle" class="tool-btn" title="复制链接">
+              📤 分享
+            </button>
           </div>
         </div>
-        <div v-else class="login-hint">
-          <router-link to="/login">登录</router-link> 后可以发表评论
+      </aside>
+
+      <!-- 主内容区 -->
+      <div class="article-main">
+        <div class="article-actions">
+          <router-link to="/" class="back-link">← 返回首页</router-link>
+          <div class="action-buttons" v-if="user">
+            <router-link :to="`/edit/${article.id}`" class="btn-edit">编辑</router-link>
+            <button @click="deleteArticle" class="btn-delete">删除</button>
+          </div>
         </div>
 
-        <div v-if="comments.length === 0" class="no-comments">
-          <p>暂无评论，来说两句吧</p>
-        </div>
+        <article class="article">
+          <div class="article-cover" v-if="article.cover_url">
+            <img :src="article.cover_url" :alt="article.title" />
+          </div>
 
-        <div v-else class="comments-list">
-          <div v-for="comment in comments" :key="comment.id" class="comment-card">
-            <div class="comment-header">
-              <span class="comment-author">👤 {{ comment.author }}</span>
-              <span class="comment-date">{{ formatDate(comment.created_at) }}</span>
+          <header class="article-header">
+            <h1>{{ article.title }}</h1>
+            <div class="article-meta">
+              <span class="category-tag">{{ article.category }}</span>
+              <span class="publish-date">{{ formatDate(article.created_at) }}</span>
+              <span v-if="article.updated_at !== article.created_at" class="update-date">
+                更新于 {{ formatDate(article.updated_at) }}
+              </span>
             </div>
-            <p class="comment-content">{{ comment.content }}</p>
+            <div class="article-tags" v-if="article.tags">
+              <span v-for="tag in tagList" :key="tag" class="tag">{{ tag }}</span>
+            </div>
+            <div class="article-stats">
+              <span>👁 {{ article.views || 0 }} 阅读</span>
+              <span>❤️ {{ article.likes || 0 }} 点赞</span>
+            </div>
+          </header>
+
+          <div class="article-body" ref="articleBody" v-html="renderedContent"></div>
+        </article>
+
+        <!-- 评论区 -->
+        <div class="comments-section">
+          <h3>💬 评论 ({{ comments.length }})</h3>
+
+          <div class="comment-form" v-if="user">
+            <textarea v-model="newComment" placeholder="写下你的评论..." rows="3" maxlength="500"></textarea>
+            <div class="comment-form-footer">
+              <span class="char-count">{{ newComment.length }}/500</span>
+              <button @click="submitComment" :disabled="!newComment.trim() || submitting">发布评论</button>
+            </div>
+          </div>
+          <div v-else class="login-hint">
+            <router-link to="/login">登录</router-link> 后可以发表评论
+          </div>
+
+          <div v-if="comments.length === 0" class="no-comments">
+            <p>暂无评论，来说两句吧</p>
+          </div>
+
+          <div v-else class="comments-list">
+            <div v-for="comment in comments" :key="comment.id" class="comment-card">
+              <div class="comment-header">
+                <span class="comment-author">👤 {{ comment.author }}</span>
+                <span class="comment-date">{{ formatDate(comment.created_at) }}</span>
+              </div>
+              <p class="comment-content">{{ comment.content }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -75,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { marked } from 'marked'
@@ -99,6 +131,10 @@ const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
 const user = ref(null)
+const liked = ref(false)
+const favorited = ref(false)
+const toc = ref([])
+const articleBody = ref(null)
 
 const tagList = computed(() => {
   if (!article.value?.tags) return []
@@ -110,10 +146,68 @@ const renderedContent = computed(() => {
   return marked(article.value.content)
 })
 
+// 提取目录
+const extractToc = () => {
+  if (!article.value?.content) return
+  const headings = article.value.content.match(/^#{1,3}\s+.+$/gm)
+  if (!headings) return
+  toc.value = headings.map(h => {
+    const level = h.match(/^(#{1,3})/)[1].length
+    const text = h.replace(/^#{1,3}\s+/, '')
+    const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '')
+    return { level, text, id }
+  })
+}
+
+const scrollTo = (id) => {
+  const el = document.getElementById(id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+const toggleLike = async () => {
+  if (!article.value) return
+  try {
+    await axios.post(`/api/articles/${article.value.id}/like`)
+    article.value.likes = (article.value.likes || 0) + 1
+    liked.value = true
+  } catch (e) { /* ignore */ }
+}
+
+const toggleFavorite = async () => {
+  if (!user.value || !article.value) {
+    alert('请先登录')
+    return
+  }
+  try {
+    if (favorited.value) {
+      await axios.delete(`/api/articles/${article.value.id}/favorite/${user.value.id}`)
+      favorited.value = false
+    } else {
+      await axios.post(`/api/articles/${article.value.id}/favorite`, { user_id: user.value.id })
+      favorited.value = true
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const shareArticle = () => {
+  const url = window.location.href
+  navigator.clipboard.writeText(url).then(() => {
+    alert('链接已复制到剪贴板！')
+  }).catch(() => {
+    prompt('复制以下链接分享：', url)
+  })
+}
+
 const fetchArticle = async () => {
   try {
     const response = await axios.get(`/api/articles/${route.params.id}`)
     article.value = response.data
+    await nextTick()
+    extractToc()
   } catch (error) {
     article.value = null
   } finally {
@@ -125,6 +219,14 @@ const fetchComments = async () => {
   try {
     const response = await axios.get(`/api/comments/${route.params.id}`)
     comments.value = response.data
+  } catch (e) { /* ignore */ }
+}
+
+const checkFavorite = async () => {
+  if (!user.value) return
+  try {
+    const res = await axios.get(`/api/articles/${route.params.id}/favorite/${user.value.id}`)
+    favorited.value = res.data.favorited
   } catch (e) { /* ignore */ }
 }
 
@@ -168,11 +270,12 @@ onMounted(() => {
   if (saved) try { user.value = JSON.parse(saved) } catch (e) {}
   fetchArticle()
   fetchComments()
+  checkFavorite()
 })
 </script>
 
 <style scoped>
-.article-detail { max-width: 800px; margin: 0 auto; }
+.article-detail { max-width: 100%; }
 .loading { text-align: center; padding: 3rem; }
 
 .spinner {
@@ -193,25 +296,145 @@ onMounted(() => {
 .back-link { color: #667eea; text-decoration: none; font-weight: 500; }
 .back-link:hover { text-decoration: underline; }
 
-.article-content {
+.detail-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+/* 目录侧边栏 */
+.toc-sidebar {
+  width: 220px;
+  min-width: 220px;
+}
+
+.toc-sticky {
+  position: sticky;
+  top: 80px;
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.dark .toc-sticky {
+  background: #16213e;
+}
+
+.toc-sticky h4 {
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+  color: #667eea;
+}
+
+.toc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.toc-nav a {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: color 0.3s;
+  display: block;
+  padding: 0.2rem 0;
+}
+
+.toc-nav a:hover {
+  color: #667eea;
+}
+
+.toc-nav .toc-1 {
+  font-weight: 600;
+}
+
+.toc-nav .toc-2 {
+  padding-left: 0.8rem;
+}
+
+.toc-nav .toc-3 {
+  padding-left: 1.6rem;
+  font-size: 0.8rem;
+}
+
+.dark .toc-nav a {
+  color: #aaa;
+}
+
+/* 工具栏 */
+.article-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.dark .article-toolbar {
+  border-color: #0f3460;
+}
+
+.tool-btn {
+  background: none;
+  border: 1px solid #e0e0e0;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: inherit;
+  transition: all 0.3s;
+  text-align: center;
+}
+
+.tool-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.tool-btn.liked {
+  border-color: #ff6b6b;
+  color: #ff6b6b;
+}
+
+.tool-btn.favorited {
+  border-color: #f0a500;
+  color: #f0a500;
+}
+
+/* 主内容 */
+.article-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.article {
   background: white;
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.dark .article-content { background: #16213e; }
+.dark .article {
+  background: #16213e;
+}
 
 .article-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #eee;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-.dark .article-actions { border-color: #0f3460; }
+.dark .article-actions {
+  background: #16213e;
+}
 
 .action-buttons { display: flex; gap: 0.8rem; }
 
@@ -269,9 +492,16 @@ onMounted(() => {
 
 .update-date { color: #667eea; }
 
-.article-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.article-tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
 .tag { background: #e8ecff; color: #667eea; padding: 0.15rem 0.6rem; border-radius: 10px; font-size: 0.8rem; }
 .dark .tag { background: #1a1a4e; }
+
+.article-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #999;
+}
 
 .article-body {
   line-height: 1.8;
@@ -284,6 +514,7 @@ onMounted(() => {
 .article-body :deep(h1), .article-body :deep(h2), .article-body :deep(h3) {
   margin: 1.5rem 0 0.8rem;
   color: #333;
+  scroll-margin-top: 80px;
 }
 
 .dark .article-body :deep(h1),
@@ -309,12 +540,14 @@ onMounted(() => {
 
 /* 评论区 */
 .comments-section {
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 2px solid #f0f0f0;
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.dark .comments-section { border-color: #0f3460; }
+.dark .comments-section { background: #16213e; }
 
 .comments-section h3 { margin-bottom: 1.5rem; }
 
@@ -382,9 +615,35 @@ onMounted(() => {
 .comment-content { color: #555; line-height: 1.6; }
 .dark .comment-content { color: #bbb; }
 
-@media (max-width: 768px) {
-  .article-content { padding: 1.5rem; }
+@media (max-width: 900px) {
+  .detail-layout {
+    flex-direction: column;
+  }
+  .toc-sidebar {
+    width: 100%;
+    min-width: 100%;
+    order: -1;
+  }
+  .toc-sticky {
+    position: static;
+  }
+  .toc-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .toc-nav a {
+    background: #f0f0f0;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+  .dark .toc-nav a { background: #0f3460; }
+  .toc-nav .toc-2, .toc-nav .toc-3 { padding-left: 0.3rem; }
+  .article-toolbar {
+    flex-direction: row;
+  }
+  .article { padding: 1.5rem; }
   .article-header h1 { font-size: 1.5rem; }
-  .article-actions { flex-direction: column; gap: 1rem; align-items: flex-start; }
 }
 </style>

@@ -1,11 +1,56 @@
 <template>
   <div class="home">
-    <div class="hero">
-      <h2>欢迎来到我的博客</h2>
-      <p>记录学习、分享技术、沉淀思考</p>
+    <!-- 站点统计卡片 -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <span class="stat-num">{{ stats.total }}</span>
+        <span class="stat-label">文章</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ stats.totalCategories }}</span>
+        <span class="stat-label">分类</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ stats.totalViews }}</span>
+        <span class="stat-label">阅读</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ stats.totalComments }}</span>
+        <span class="stat-label">评论</span>
+      </div>
     </div>
 
-    <!-- 搜索和筛选区域 -->
+    <!-- 热门文章推荐轮播 -->
+    <div class="hot-section" v-if="hotArticles.length > 0">
+      <h3>🔥 热门推荐</h3>
+      <div class="hot-grid">
+        <div class="hot-card hot-card-main" v-if="hotArticles[0]" @click="goToDetail(hotArticles[0].id)">
+          <div class="hot-cover" v-if="hotArticles[0].cover_url">
+            <img :src="hotArticles[0].cover_url" :alt="hotArticles[0].title" />
+          </div>
+          <div class="hot-info">
+            <span class="hot-badge">HOT</span>
+            <h4>{{ hotArticles[0].title }}</h4>
+            <p>{{ hotArticles[0].summary }}</p>
+            <div class="hot-meta">
+              <span>👁 {{ hotArticles[0].views }} 阅读</span>
+              <span>❤️ {{ hotArticles[0].likes }} 点赞</span>
+            </div>
+          </div>
+        </div>
+        <div class="hot-side">
+          <div v-for="(a, i) in hotArticles.slice(1, 4)" :key="a.id" class="hot-mini" @click="goToDetail(a.id)">
+            <span class="hot-rank">0{{ i + 2 }}</span>
+            <div class="hot-mini-info">
+              <h5>{{ a.title }}</h5>
+              <span>👁 {{ a.views }} 阅读 · ❤️ {{ a.likes }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索和分类 -->
     <div class="filter-bar">
       <div class="search-box">
         <input v-model="keyword" @keyup.enter="search" placeholder="🔍 搜索文章..." />
@@ -18,6 +63,18 @@
           :class="{ active: activeCategory === cat }"
           @click="filterByCategory(cat)"
         >{{ cat }}</button>
+      </div>
+    </div>
+
+    <!-- 标签云 -->
+    <div class="tag-cloud-section" v-if="tagCloud.length > 0">
+      <h3>🏷️ 热门标签</h3>
+      <div class="tag-cloud">
+        <span v-for="tag in tagCloud" :key="tag.name" 
+          class="tag-item" 
+          :style="{ fontSize: (0.8 + tag.count * 0.15) + 'rem', opacity: 0.6 + tag.count * 0.1 }"
+          @click="filterByTag(tag.name)"
+        >{{ tag.name }}</span>
       </div>
     </div>
 
@@ -57,8 +114,12 @@
               <div class="article-tags" v-if="article.tags">
                 <span v-for="tag in getTags(article.tags)" :key="tag" class="tag" @click.stop="filterByTag(tag)">{{ tag }}</span>
               </div>
-              <span class="article-date">{{ formatDate(article.created_at) }}</span>
-              <span class="read-more">阅读全文 →</span>
+              <div class="article-stats-row">
+                <span class="article-date">{{ formatDate(article.created_at) }}</span>
+                <span class="stat">👁 {{ article.views || 0 }}</span>
+                <span class="stat">❤️ {{ article.likes || 0 }}</span>
+                <span class="read-more">阅读全文 →</span>
+              </div>
             </div>
           </div>
         </article>
@@ -84,6 +145,9 @@ import axios from 'axios'
 
 const router = useRouter()
 const articles = ref([])
+const hotArticles = ref([])
+const tagCloud = ref([])
+const stats = ref({ total: 0, totalCategories: 0, totalViews: 0, totalComments: 0 })
 const loading = ref(true)
 const page = ref(1)
 const total = ref(0)
@@ -108,6 +172,27 @@ const displayPages = computed(() => {
   return pages
 })
 
+const fetchStats = async () => {
+  try {
+    const res = await axios.get('/api/articles/stats/overview')
+    stats.value = res.data
+  } catch (e) { /* ignore */ }
+}
+
+const fetchHotArticles = async () => {
+  try {
+    const res = await axios.get('/api/articles/hot/list')
+    hotArticles.value = res.data
+  } catch (e) { /* ignore */ }
+}
+
+const fetchTagCloud = async () => {
+  try {
+    const res = await axios.get('/api/articles/tags/cloud')
+    tagCloud.value = res.data.slice(0, 20)
+  } catch (e) { /* ignore */ }
+}
+
 const fetchArticles = async () => {
   loading.value = true
   try {
@@ -120,7 +205,6 @@ const fetchArticles = async () => {
     totalPages.value = response.data.totalPages
   } catch (error) {
     console.error('获取文章失败:', error)
-    alert('获取文章列表失败，请检查后端服务是否启动')
   } finally {
     loading.value = false
   }
@@ -171,24 +255,225 @@ const formatDate = (dateStr) => {
 }
 
 onMounted(() => {
+  fetchStats()
+  fetchHotArticles()
+  fetchTagCloud()
   fetchCategories()
   fetchArticles()
 })
 </script>
 
 <style scoped>
-.hero {
-  text-align: center;
-  padding: 3rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px;
+.home { max-width: 100%; }
+
+/* 统计卡片 */
+.stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
   margin-bottom: 1.5rem;
 }
 
-.hero h2 { font-size: 2rem; margin-bottom: 0.5rem; }
-.hero p { font-size: 1.1rem; opacity: 0.9; }
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.3s;
+}
 
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.dark .stat-card {
+  background: #16213e;
+}
+
+.stat-num {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 0.3rem;
+}
+
+/* 热门推荐 */
+.hot-section {
+  margin-bottom: 1.5rem;
+}
+
+.hot-section h3 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.hot-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+}
+
+.hot-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: transform 0.3s;
+}
+
+.hot-card:hover {
+  transform: translateY(-2px);
+}
+
+.dark .hot-card {
+  background: #16213e;
+}
+
+.hot-card-main .hot-cover img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.hot-info {
+  padding: 1.2rem;
+}
+
+.hot-badge {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+  color: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.hot-info h4 {
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.hot-info p {
+  color: #888;
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 0.8rem;
+}
+
+.hot-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.hot-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.hot-mini {
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.3s;
+  flex: 1;
+}
+
+.hot-mini:hover {
+  transform: translateX(5px);
+}
+
+.dark .hot-mini {
+  background: #16213e;
+}
+
+.hot-rank {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #667eea;
+  min-width: 35px;
+}
+
+.hot-mini-info h5 {
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hot-mini-info span {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+/* 标签云 */
+.tag-cloud-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.2rem 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.dark .tag-cloud-section {
+  background: #16213e;
+}
+
+.tag-cloud-section h3 {
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tag-item {
+  cursor: pointer;
+  padding: 0.3rem 0.8rem;
+  border-radius: 16px;
+  background: #f0f0f0;
+  color: #667eea;
+  transition: all 0.3s;
+}
+
+.tag-item:hover {
+  background: #667eea;
+  color: white;
+}
+
+.dark .tag-item {
+  background: #0f3460;
+}
+
+/* 筛选 */
 .filter-bar {
   background: white;
   border-radius: 12px;
@@ -257,6 +542,7 @@ onMounted(() => {
   border-color: transparent;
 }
 
+/* 文章列表 */
 .articles-section {
   background: white;
   border-radius: 12px;
@@ -309,6 +595,8 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid #eee;
+  display: flex;
+  flex-direction: row;
 }
 
 .dark .article-card {
@@ -322,13 +610,23 @@ onMounted(() => {
   border-color: #667eea;
 }
 
+.article-cover {
+  width: 240px;
+  min-width: 240px;
+}
+
 .article-cover img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
 }
 
-.article-info { padding: 1.5rem; }
+.article-info {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
 
 .article-header {
   display: flex;
@@ -361,6 +659,7 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
 }
 
 .dark .article-summary { color: #aaa; }
@@ -385,9 +684,18 @@ onMounted(() => {
 
 .dark .tag { background: #1a1a4e; }
 
+.article-stats-row {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .article-date { color: #999; font-size: 0.85rem; }
+.stat { color: #999; font-size: 0.8rem; }
 .read-more { color: #667eea; font-weight: 500; font-size: 0.9rem; }
 
+/* 分页 */
 .pagination {
   display: flex;
   justify-content: center;
@@ -426,7 +734,22 @@ onMounted(() => {
 .ellipsis { padding: 0 0.3rem; }
 
 @media (max-width: 768px) {
-  .hero h2 { font-size: 1.5rem; }
-  .article-header { flex-direction: column; }
+  .stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hot-grid {
+    grid-template-columns: 1fr;
+  }
+  .article-card {
+    flex-direction: column;
+  }
+  .article-cover {
+    width: 100%;
+    min-width: 100%;
+    height: 160px;
+  }
+  .article-stats-row {
+    flex-wrap: wrap;
+  }
 }
 </style>

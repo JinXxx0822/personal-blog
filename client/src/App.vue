@@ -6,6 +6,10 @@
       </div>
       <div class="nav-links">
         <router-link to="/" class="nav-link">🏠 首页</router-link>
+        <router-link to="/archive" class="nav-link">📅 归档</router-link>
+        <router-link to="/links" class="nav-link">🔗 友链</router-link>
+        <router-link to="/about" class="nav-link">👤 关于</router-link>
+        <router-link to="/favorites" class="nav-link" v-if="user">⭐ 收藏</router-link>
         <router-link to="/edit" class="nav-link btn-primary" v-if="user">✏️ 写文章</router-link>
         <button class="nav-link theme-btn" @click="toggleDark" :title="isDark ? '切换亮色' : '切换暗色'">
           {{ isDark ? '☀️' : '🌙' }}
@@ -101,6 +105,9 @@ body {
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   flex-wrap: wrap;
   gap: 0.8rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .nav-brand h1 {
@@ -111,7 +118,7 @@ body {
 
 .nav-links {
   display: flex;
-  gap: 1rem;
+  gap: 0.6rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -124,12 +131,15 @@ body {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-family: inherit;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
 }
 
 .nav-link:hover {
   opacity: 0.8;
+  background: rgba(255,255,255,0.1);
 }
 
 .btn-primary {
@@ -151,7 +161,7 @@ body {
 
 .nav-user {
   opacity: 0.9;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .main-content {
@@ -179,13 +189,15 @@ body {
     flex-direction: column;
     padding: 1rem;
   }
-
   .nav-links {
     justify-content: center;
   }
-
   .main-content {
     padding: 1rem;
+  }
+  .nav-link {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.4rem;
   }
 }
 </style>

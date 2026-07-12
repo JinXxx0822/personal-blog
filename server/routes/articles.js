@@ -31,7 +31,6 @@ router.get('/', (req, res) => {
 
   const whereSQL = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
 
-  // 查询总数
   const countSQL = `SELECT COUNT(*) as total FROM articles ${whereSQL}`;
 
   db.get(countSQL, params, (err, countRow) => {
@@ -43,8 +42,7 @@ router.get('/', (req, res) => {
     const total = countRow.total;
     const totalPages = Math.ceil(total / limit);
 
-    // 查询分页数据
-    const dataSQL = `SELECT id, title, summary, category, tags, cover_url, created_at 
+    const dataSQL = `SELECT id, title, summary, category, tags, cover_url, views, likes, created_at 
                      FROM articles ${whereSQL} 
                      ORDER BY created_at DESC 
                      LIMIT ? OFFSET ?`;
@@ -67,40 +65,134 @@ router.get('/', (req, res) => {
 });
 
 // ========================================
+// 接口: GET /api/articles/hot - 获取热门文章（按阅读量）
+// ========================================
+router.get('/hot/list', (req, res) => {
+  const sql = `SELECT id, title, summary, category, tags, cover_url, views, likes, created_at 
+               FROM articles ORDER BY views DESC LIMIT 5`;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: '获取热门文章失败' });
+    res.json(rows);
+  });
+});
+
+// ========================================
+// 接口: GET /api/articles/archive - 获取文章归档（按月份）
+// ========================================
+router.get('/archive/list', (req, res) => {
+  const sql = `SELECT id, title, category, tags, views, created_at 
+               FROM articles ORDER BY created_at DESC`;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: '获取归档失败' });
+    
+    // 按年月分组
+    const archive = {};
+    rows.forEach(row => {
+      const date = new Date(row.created_at);
+      const key = `${date.getFullYear()}年${date.getMonth() + 1}月`;
+      if (!archive[key]) archive[key] = [];
+      archive[key].push(row);
+    });
+    
+    res.json(archive);
+  });
+});
+
+// ========================================
+// 接口: GET /api/articles/tags/cloud - 获取标签云
+// ========================================
+router.get('/tags/cloud', (req, res) => {
+  const sql = `SELECT tags FROM articles WHERE tags != ''`;
+  db.all(sql, [], (err, rows) => {
+    if (err) return res.status(500).json({ error: '获取标签失败' });
+    
+    const tagCount = {};
+    rows.forEach(row => {
+      if (!row.tags) return;
+      row.tags.split(',').forEach(tag => {
+        const t = tag.trim();
+        if (t) tagCount[t] = (tagCount[t] || 0) + 1;
+      });
+    });
+    
+    const tags = Object.entries(tagCount).map(([name, count]) => ({ name, count }));
+    res.json(tags);
+  });
+});
+
+// ========================================
 // 接口: GET /api/articles/categories - 获取所有分类
 // ========================================
 router.get('/categories/all', (req, res) => {
   const sql = 'SELECT DISTINCT category FROM articles ORDER BY category';
   db.all(sql, [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: '获取分类失败' });
-    }
+    if (err) return res.status(500).json({ error: '获取分类失败' });
     const categories = rows.map(r => r.category);
     res.json(categories);
   });
 });
 
 // ========================================
-// 接口: GET /api/articles/:id - 获取文章详情
+// 接口: GET /api/articles/stats - 站点统计
+// ========================================
+router.get('/stats/overview', (req, res) => {
+  const sqls = {
+    total: 'SELECT COUNT(*) as count FROM articles',
+    totalViews: 'SELECT COALESCE(SUM(views), 0) as count FROM articles',
+    totalLikes: 'SELECT COALESCE(SUM(likes), 0) as count FROM articles',
+    totalComments: 'SELECT COUNT(*) as count FROM comments',
+    totalCategories: 'SELECT COUNT(DISTINCT category) as count FROM articles'
+  };
+  
+  const stats = {};
+  let pending = Object.keys(sqls).length;
+  
+  Object.entries(sqls).forEach(([key, sql]) => {
+    db.get(sql, [], (err, row) => {
+      if (err) {
+        stats[key] = 0;
+      } else {
+        stats[key] = row.count;
+      }
+      pending--;
+      if (pending === 0) res.json(stats);
+    });
+  });
+});
+
+// ========================================
+// 接口: GET /api/articles/:id - 获取文章详情（同时增加阅读量）
 // ========================================
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  if (id === 'categories') return; // 避免路由冲突
+  if (['categories', 'hot', 'archive', 'tags', 'stats'].includes(id)) return;
+
+  // 先增加阅读量
+  db.run('UPDATE articles SET views = views + 1 WHERE id = ?', [id]);
 
   const sql = 'SELECT * FROM articles WHERE id = ?';
-
   db.get(sql, [id], (err, row) => {
     if (err) {
       console.error('查询文章详情失败:', err);
       return res.status(500).json({ error: '查询文章详情失败' });
     }
-
     if (!row) {
       return res.status(404).json({ error: '文章不存在' });
     }
-
     res.json(row);
+  });
+});
+
+// ========================================
+// 接口: POST /api/articles/:id/like - 点赞文章
+// ========================================
+router.post('/:id/like', (req, res) => {
+  const { id } = req.params;
+  db.run('UPDATE articles SET likes = likes + 1 WHERE id = ?', [id], function(err) {
+    if (err) return res.status(500).json({ error: '点赞失败' });
+    if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
+    res.json({ message: '点赞成功' });
   });
 });
 
@@ -113,15 +205,12 @@ router.post('/', (req, res) => {
   if (!title || !title.trim()) {
     return res.status(400).json({ error: '标题不能为空' });
   }
-
   if (!content || !content.trim()) {
     return res.status(400).json({ error: '正文不能为空' });
   }
-
   if (title.trim().length > 100) {
     return res.status(400).json({ error: '标题不能超过100字' });
   }
-
   if (content.trim().length < 10) {
     return res.status(400).json({ error: '正文内容太短，请至少输入10个字' });
   }
@@ -137,13 +226,8 @@ router.post('/', (req, res) => {
       console.error('创建文章失败:', err);
       return res.status(500).json({ error: '创建文章失败' });
     }
-
     res.status(201).json({
-      id,
-      title: title.trim(),
-      summary: finalSummary,
-      category: finalCategory,
-      tags: finalTags,
+      id, title: title.trim(), summary: finalSummary, category: finalCategory, tags: finalTags,
       message: '文章创建成功'
     });
   });
@@ -156,17 +240,8 @@ router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { title, summary, content, category, tags, cover_url } = req.body;
 
-  if (!title || !title.trim()) {
-    return res.status(400).json({ error: '标题不能为空' });
-  }
-
-  if (!content || !content.trim()) {
-    return res.status(400).json({ error: '正文不能为空' });
-  }
-
-  if (title.trim().length > 100) {
-    return res.status(400).json({ error: '标题不能超过100字' });
-  }
+  if (!title || !title.trim()) return res.status(400).json({ error: '标题不能为空' });
+  if (!content || !content.trim()) return res.status(400).json({ error: '正文不能为空' });
 
   const sql = 'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, tags = ?, cover_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
   const finalSummary = summary && summary.trim() ? summary.trim() : content.trim().substring(0, 100);
@@ -177,11 +252,7 @@ router.put('/:id', (req, res) => {
       console.error('更新文章失败:', err);
       return res.status(500).json({ error: '更新文章失败' });
     }
-
-    if (this.changes === 0) {
-      return res.status(404).json({ error: '文章不存在' });
-    }
-
+    if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
     res.json({ message: '文章更新成功' });
   });
 });
@@ -191,22 +262,16 @@ router.put('/:id', (req, res) => {
 // ========================================
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
-
-  // 先删除关联的评论
   db.run('DELETE FROM comments WHERE article_id = ?', [id], (err) => {
-    const sql = 'DELETE FROM articles WHERE id = ?';
-
-    db.run(sql, [id], function(err) {
-      if (err) {
-        console.error('删除文章失败:', err);
-        return res.status(500).json({ error: '删除文章失败' });
-      }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: '文章不存在' });
-      }
-
-      res.json({ message: '文章删除成功' });
+    db.run('DELETE FROM favorites WHERE article_id = ?', [id], (err) => {
+      db.run('DELETE FROM articles WHERE id = ?', [id], function(err) {
+        if (err) {
+          console.error('删除文章失败:', err);
+          return res.status(500).json({ error: '删除文章失败' });
+        }
+        if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
+        res.json({ message: '文章删除成功' });
+      });
     });
   });
 });
@@ -217,17 +282,57 @@ router.delete('/:id', (req, res) => {
 router.post('/:id/upload', (req, res) => {
   const { id } = req.params;
   const { url } = req.body;
-
-  if (!url) {
-    return res.status(400).json({ error: '图片地址不能为空' });
-  }
-
-  const sql = 'UPDATE articles SET cover_url = ? WHERE id = ?';
-  db.run(sql, [url, id], function(err) {
-    if (err) {
-      return res.status(500).json({ error: '更新封面失败' });
-    }
+  if (!url) return res.status(400).json({ error: '图片地址不能为空' });
+  db.run('UPDATE articles SET cover_url = ? WHERE id = ?', [url, id], function(err) {
+    if (err) return res.status(500).json({ error: '更新封面失败' });
     res.json({ message: '封面更新成功', cover_url: url });
+  });
+});
+
+// ========================================
+// 收藏相关接口
+// ========================================
+
+// 获取用户收藏列表
+router.get('/favorites/user/:userId', (req, res) => {
+  const { userId } = req.params;
+  const sql = `SELECT a.id, a.title, a.summary, a.category, a.tags, a.cover_url, a.views, a.likes, a.created_at, f.created_at as fav_time
+               FROM favorites f JOIN articles a ON f.article_id = a.id
+               WHERE f.user_id = ? ORDER BY f.created_at DESC`;
+  db.all(sql, [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: '获取收藏失败' });
+    res.json(rows);
+  });
+});
+
+// 添加收藏
+router.post('/:id/favorite', (req, res) => {
+  const { id } = req.params;
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ error: '用户ID不能为空' });
+  
+  const favId = uuidv4();
+  db.run('INSERT OR IGNORE INTO favorites (id, user_id, article_id) VALUES (?, ?, ?)', [favId, user_id, id], function(err) {
+    if (err) return res.status(500).json({ error: '收藏失败' });
+    res.json({ message: '收藏成功' });
+  });
+});
+
+// 取消收藏
+router.delete('/:id/favorite/:userId', (req, res) => {
+  const { id, userId } = req.params;
+  db.run('DELETE FROM favorites WHERE user_id = ? AND article_id = ?', [userId, id], function(err) {
+    if (err) return res.status(500).json({ error: '取消收藏失败' });
+    res.json({ message: '已取消收藏' });
+  });
+});
+
+// 检查是否已收藏
+router.get('/:id/favorite/:userId', (req, res) => {
+  const { id, userId } = req.params;
+  db.get('SELECT id FROM favorites WHERE user_id = ? AND article_id = ?', [userId, id], (err, row) => {
+    if (err) return res.status(500).json({ error: '查询失败' });
+    res.json({ favorited: !!row });
   });
 });
 

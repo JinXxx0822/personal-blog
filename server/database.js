@@ -22,6 +22,8 @@ function initDatabase() {
       category TEXT DEFAULT '笔记',
       tags TEXT DEFAULT '',
       cover_url TEXT DEFAULT '',
+      views INTEGER DEFAULT 0,
+      likes INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -40,7 +42,32 @@ function initDatabase() {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       nickname TEXT DEFAULT '',
+      avatar TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      article_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, article_id),
+      FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS links (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      url TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS about (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
   `;
 
@@ -48,7 +75,7 @@ function initDatabase() {
     if (err) {
       console.error('数据库初始化失败:', err);
     } else {
-      console.log('数据库表初始化成功（articles + comments + users）');
+      console.log('数据库表初始化成功（articles + comments + users + favorites + links + about）');
     }
   });
 }
