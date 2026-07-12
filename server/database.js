@@ -19,16 +19,36 @@ function initDatabase() {
       title TEXT NOT NULL,
       summary TEXT DEFAULT '',
       content TEXT NOT NULL,
+      category TEXT DEFAULT '笔记',
+      tags TEXT DEFAULT '',
+      cover_url TEXT DEFAULT '',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
+    );
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      article_id TEXT NOT NULL,
+      author TEXT DEFAULT '匿名',
+      content TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      nickname TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `;
 
-  db.run(sql, (err) => {
+  db.exec(sql, (err) => {
     if (err) {
       console.error('数据库初始化失败:', err);
     } else {
-      console.log('数据库表初始化成功');
+      console.log('数据库表初始化成功（articles + comments + users）');
     }
   });
 }
