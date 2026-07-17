@@ -76,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { marked } from 'marked'
@@ -94,6 +94,7 @@ marked.setOptions({
 
 const route = useRoute()
 const router = useRouter()
+const toast = inject('toast', null)
 const isEdit = ref(false)
 const saving = ref(false)
 const editorMode = ref('edit')
@@ -128,7 +129,8 @@ const fetchArticle = async () => {
       cover_url: article.cover_url || ''
     }
   } catch (error) {
-    alert('获取文章信息失败')
+    if (toast) toast.error('获取文章信息失败')
+    else alert('获取文章信息失败')
     router.push('/')
   }
 }
@@ -138,10 +140,14 @@ const previewCover = () => { showPreview.value = true }
 const validateForm = () => {
   const title = form.value.title.trim()
   const content = form.value.content.trim()
-  if (!title) { alert('标题不能为空'); return false }
-  if (title.length > 100) { alert('标题不能超过100字'); return false }
-  if (!content) { alert('正文不能为空'); return false }
-  if (content.length < 10) { alert('正文内容太短，请至少输入10个字'); return false }
+  const showAlert = (msg) => {
+    if (toast) toast.warning(msg)
+    else alert(msg)
+  }
+  if (!title) { showAlert('标题不能为空'); return false }
+  if (title.length > 100) { showAlert('标题不能超过100字'); return false }
+  if (!content) { showAlert('正文不能为空'); return false }
+  if (content.length < 10) { showAlert('正文内容太短，请至少输入10个字'); return false }
   return true
 }
 
@@ -160,14 +166,18 @@ const saveArticle = async () => {
 
     if (isEdit.value) {
       await axios.put(`/api/articles/${route.params.id}`, payload)
-      alert('文章更新成功！')
+      if (toast) toast.success('文章更新成功！')
+      else alert('文章更新成功！')
     } else {
       await axios.post('/api/articles', payload)
-      alert('文章发布成功！')
+      if (toast) toast.success('文章发布成功！')
+      else alert('文章发布成功！')
     }
     router.push('/')
   } catch (error) {
-    alert(error.response?.data?.error || '保存失败')
+    const msg = error.response?.data?.error || '保存失败'
+    if (toast) toast.error(msg)
+    else alert(msg)
   } finally {
     saving.value = false
   }

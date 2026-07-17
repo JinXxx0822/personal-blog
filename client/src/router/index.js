@@ -25,4 +25,24 @@ const router = createRouter({
   routes
 })
 
+// 全局路由守卫：未登录时拦截需要认证的页面
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth) {
+    const saved = localStorage.getItem('user')
+    if (!saved) {
+      // 跳转到登录页，并记录来源路径以便登录后跳回
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
+    try {
+      JSON.parse(saved)
+    } catch (e) {
+      localStorage.removeItem('user')
+      next({ name: 'Login', query: { redirect: to.fullPath } })
+      return
+    }
+  }
+  next()
+})
+
 export default router

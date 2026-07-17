@@ -1,14 +1,25 @@
 <template>
   <div class="article-detail">
-    <div v-if="loading" class="loading">
-      <div class="spinner"></div>
-      <p>加载中...</p>
-    </div>
+    <!-- 骨架屏 -->
+    <template v-if="pageLoading">
+      <div class="detail-layout skel-layout">
+        <aside class="toc-sidebar">
+          <div class="skeleton-card" style="height: 200px"></div>
+        </aside>
+        <div class="article-main" style="flex: 1">
+          <div class="skeleton-card" style="height: 60px; margin-bottom: 1.5rem"></div>
+          <div class="skeleton-card" style="height: 350px; margin-bottom: 1.5rem"></div>
+          <div class="skeleton-card" style="height: 200px"></div>
+        </div>
+      </div>
+    </template>
 
-    <div v-else-if="!article" class="error">
-      <p>文章不存在或已被删除</p>
-      <router-link to="/" class="back-link">← 返回首页</router-link>
-    </div>
+    <template v-else-if="!article">
+      <div class="error">
+        <p>文章不存在或已被删除</p>
+        <router-link to="/" class="back-link">← 返回首页</router-link>
+      </div>
+    </template>
 
     <div v-else class="detail-layout">
       <!-- 左侧目录导航 -->
@@ -72,6 +83,26 @@
           <div class="article-body" ref="articleBody" v-html="renderedContent"></div>
         </article>
 
+        <!-- 相关文章推荐 -->
+        <div class="related-section" v-if="relatedArticles.length > 0">
+          <h3>📖 相关推荐</h3>
+          <div class="related-grid">
+            <div v-for="ra in relatedArticles" :key="ra.id" class="related-card" @click="goToArticle(ra.id)">
+              <div class="related-cover" v-if="ra.cover_url">
+                <img :src="ra.cover_url" :alt="ra.title" />
+              </div>
+              <div class="related-info">
+                <h5>{{ ra.title }}</h5>
+                <span class="related-cat">{{ ra.category }}</span>
+                <div class="related-meta">
+                  <span>👁 {{ ra.views }}</span>
+                  <span>❤️ {{ ra.likes }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 评论区 -->
         <div class="comments-section">
           <h3>💬 评论 ({{ comments.length }})</h3>
@@ -107,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import { marked } from 'marked'
@@ -125,8 +156,11 @@ marked.setOptions({
 
 const route = useRoute()
 const router = useRouter()
+const toast = inject('toast', null)
+
 const article = ref(null)
 const loading = ref(true)
+const pageLoading = ref(true)
 const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
@@ -135,6 +169,7 @@ const liked = ref(false)
 const favorited = ref(false)
 const toc = ref([])
 const articleBody = ref(null)
+const relatedArticles = ref([])
 
 const tagList = computed(() => {
   if (!article.value?.tags) return []
@@ -169,34 +204,48 @@ const scrollTo = (id) => {
 const toggleLike = async () => {
   if (!article.value) return
   try {
-    await axios.post(`/api/articles/${article.value.id}/like`)
-    article.value.likes = (article.value.likes || 0) + 1
-    liked.value = true
-  } catch (e) { /* ignore */ }
+    const payload = user.value ? { user_id: user.value.id } : {}
+    const res = await axios.post(`/api/articles/${article.value.id}/like`, payload)
+    if (res.data.action === 'liked') {
+      article.value.likes = (article.value.likes || 0) + 1
+      liked.value = true
+      if (toast) toast.success('点赞成功')
+    } else if (res.data.action === 'unliked') {
+      article.value.likes = Math.max(0, (article.value.likes || 0) - 1)
+      liked.value = false
+      if (toast) toast.info('已取消点赞')
+    }
+  } catch (e) {
+    if (toast) toast.error('操作失败')
+  }
 }
 
 const toggleFavorite = async () => {
   if (!user.value || !article.value) {
-    alert('请先登录')
+    if (toast) toast.warning('请先登录')
+    else alert('请先登录')
     return
   }
   try {
     if (favorited.value) {
       await axios.delete(`/api/articles/${article.value.id}/favorite/${user.value.id}`)
       favorited.value = false
+      if (toast) toast.info('已取消收藏')
     } else {
       await axios.post(`/api/articles/${article.value.id}/favorite`, { user_id: user.value.id })
       favorited.value = true
+      if (toast) toast.success('收藏成功')
     }
   } catch (e) {
-    console.error(e)
+    if (toast) toast.error('操作失败')
   }
 }
 
 const shareArticle = () => {
   const url = window.location.href
   navigator.clipboard.writeText(url).then(() => {
-    alert('链接已复制到剪贴板！')
+    if (toast) toast.success('链接已复制到剪贴板！')
+    else alert('链接已复制到剪贴板！')
   }).catch(() => {
     prompt('复制以下链接分享：', url)
   })
@@ -222,11 +271,26 @@ const fetchComments = async () => {
   } catch (e) { /* ignore */ }
 }
 
+const fetchRelatedArticles = async () => {
+  try {
+    const res = await axios.get(`/api/articles/related/${route.params.id}`)
+    relatedArticles.value = res.data
+  } catch (e) { /* ignore */ }
+}
+
 const checkFavorite = async () => {
   if (!user.value) return
   try {
     const res = await axios.get(`/api/articles/${route.params.id}/favorite/${user.value.id}`)
     favorited.value = res.data.favorited
+  } catch (e) { /* ignore */ }
+}
+
+const checkLikeStatus = async () => {
+  if (!user.value) return
+  try {
+    const res = await axios.get(`/api/articles/${route.params.id}/like/${user.value.id}`)
+    liked.value = res.data.liked
   } catch (e) { /* ignore */ }
 }
 
@@ -241,8 +305,10 @@ const submitComment = async () => {
     })
     newComment.value = ''
     await fetchComments()
+    if (toast) toast.success('评论发布成功')
   } catch (error) {
-    alert(error.response?.data?.error || '评论失败')
+    if (toast) toast.error(error.response?.data?.error || '评论失败')
+    else alert(error.response?.data?.error || '评论失败')
   } finally {
     submitting.value = false
   }
@@ -252,10 +318,16 @@ const deleteArticle = async () => {
   if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) return
   try {
     await axios.delete(`/api/articles/${route.params.id}`)
+    if (toast) toast.success('文章已删除')
     router.push('/')
   } catch (error) {
-    alert('删除失败')
+    if (toast) toast.error('删除失败')
+    else alert('删除失败')
   }
+}
+
+const goToArticle = (id) => {
+  router.push(`/article/${id}`)
 }
 
 const formatDate = (dateStr) => {
@@ -265,17 +337,41 @@ const formatDate = (dateStr) => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('user')
   if (saved) try { user.value = JSON.parse(saved) } catch (e) {}
-  fetchArticle()
-  fetchComments()
+  
+  await Promise.all([
+    fetchArticle(),
+    fetchComments(),
+    fetchRelatedArticles()
+  ])
+  
   checkFavorite()
+  checkLikeStatus()
+  pageLoading.value = false
 })
 </script>
 
 <style scoped>
 .article-detail { max-width: 100%; }
+
+/* 骨架屏 */
+.skel-layout { display: flex; gap: 2rem; }
+.skel-layout .toc-sidebar { width: 220px; min-width: 220px; }
+.skeleton-card {
+  background: #e8e8e8;
+  border-radius: 12px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.dark .skeleton-card {
+  background: #1a1a4e;
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 .loading { text-align: center; padding: 3rem; }
 
 .spinner {
@@ -347,22 +443,11 @@ onMounted(() => {
   color: #667eea;
 }
 
-.toc-nav .toc-1 {
-  font-weight: 600;
-}
+.toc-nav .toc-1 { font-weight: 600; }
+.toc-nav .toc-2 { padding-left: 0.8rem; }
+.toc-nav .toc-3 { padding-left: 1.6rem; font-size: 0.8rem; }
 
-.toc-nav .toc-2 {
-  padding-left: 0.8rem;
-}
-
-.toc-nav .toc-3 {
-  padding-left: 1.6rem;
-  font-size: 0.8rem;
-}
-
-.dark .toc-nav a {
-  color: #aaa;
-}
+.dark .toc-nav a { color: #aaa; }
 
 /* 工具栏 */
 .article-toolbar {
@@ -373,9 +458,7 @@ onMounted(() => {
   border-top: 1px solid #eee;
 }
 
-.dark .article-toolbar {
-  border-color: #0f3460;
-}
+.dark .article-toolbar { border-color: #0f3460; }
 
 .tool-btn {
   background: none;
@@ -417,9 +500,7 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-.dark .article {
-  background: #16213e;
-}
+.dark .article { background: #16213e; }
 
 .article-actions {
   display: flex;
@@ -432,9 +513,7 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-.dark .article-actions {
-  background: #16213e;
-}
+.dark .article-actions { background: #16213e; }
 
 .action-buttons { display: flex; gap: 0.8rem; }
 
@@ -537,6 +616,81 @@ onMounted(() => {
   color: #666;
 }
 .article-body :deep(ul), .article-body :deep(ol) { padding-left: 1.5rem; margin-bottom: 1rem; }
+
+/* 相关文章 */
+.related-section {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.dark .related-section { background: #16213e; }
+
+.related-section h3 {
+  margin-bottom: 1.2rem;
+  font-size: 1.2rem;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.related-card {
+  background: #fafafa;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #eee;
+  transition: all 0.3s;
+}
+
+.dark .related-card { background: #0f3460; border-color: #1a1a4e; }
+
+.related-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  border-color: #667eea;
+}
+
+.related-cover img {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+}
+
+.related-info {
+  padding: 0.8rem;
+}
+
+.related-info h5 {
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.related-cat {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 0.1rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  margin-bottom: 0.4rem;
+}
+
+.related-meta {
+  display: flex;
+  gap: 0.8rem;
+  font-size: 0.8rem;
+  color: #999;
+}
 
 /* 评论区 */
 .comments-section {
@@ -645,5 +799,10 @@ onMounted(() => {
   }
   .article { padding: 1.5rem; }
   .article-header h1 { font-size: 1.5rem; }
+  .related-grid {
+    grid-template-columns: 1fr;
+  }
+  .skel-layout { flex-direction: column; }
+  .skel-layout .toc-sidebar { width: 100%; min-width: 100%; }
 }
 </style>

@@ -21,9 +21,24 @@
         <router-link v-else to="/login" class="nav-link">🔑 登录</router-link>
       </div>
     </nav>
+
+    <!-- 阅读进度条 -->
+    <div class="reading-progress" :style="{ width: progressPercent + '%' }"></div>
+
     <main class="main-content">
       <router-view @login-success="onLogin" />
     </main>
+
+    <!-- 回到顶部按钮 -->
+    <Transition name="fade">
+      <button v-show="showBackTop" class="back-top-btn" @click="scrollToTop" title="回到顶部">
+        ↑
+      </button>
+    </Transition>
+
+    <!-- Toast 通知 -->
+    <Toast />
+
     <footer class="footer">
       <p>© 2026 个人博客系统 - 移动应用项目工程实践</p>
     </footer>
@@ -31,12 +46,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import Toast from './components/Toast.vue'
 
 const router = useRouter()
 const isDark = ref(false)
 const user = ref(null)
+const showBackTop = ref(false)
+const progressPercent = ref(0)
 
 const toggleDark = () => {
   isDark.value = !isDark.value
@@ -54,12 +72,38 @@ const logout = () => {
   router.push('/')
 }
 
+const scrollToTop = () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 滚动监听：回到顶部按钮 + 阅读进度条
+let scrollTimer = null
+const handleScroll = () => {
+  if (scrollTimer) return
+  scrollTimer = requestAnimationFrame(() => {
+    // 回到顶部按钮
+    showBackTop.value = window.scrollY > 400
+
+    // 阅读进度条
+    const scrollTop = window.scrollY
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight
+    progressPercent.value = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0
+
+    scrollTimer = null
+  })
+}
+
 onMounted(() => {
   isDark.value = localStorage.getItem('darkMode') === '1'
   const saved = localStorage.getItem('user')
   if (saved) {
     try { user.value = JSON.parse(saved) } catch (e) { /* ignore */ }
   }
+  window.addEventListener('scroll', handleScroll, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 
@@ -164,6 +208,55 @@ body {
   font-size: 0.85rem;
 }
 
+/* 阅读进度条 */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea, #764ba2, #ff6b6b);
+  z-index: 200;
+  transition: width 0.1s linear;
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+}
+
+/* 回到顶部按钮 */
+.back-top-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  z-index: 99;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-top-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
 .main-content {
   flex: 1;
   max-width: 1200px;
@@ -198,6 +291,12 @@ body {
   .nav-link {
     font-size: 0.8rem;
     padding: 0.2rem 0.4rem;
+  }
+  .back-top-btn {
+    bottom: 20px;
+    right: 20px;
+    width: 38px;
+    height: 38px;
   }
 }
 </style>

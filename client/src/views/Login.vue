@@ -36,11 +36,13 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, inject } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
+const route = useRoute()
+const toast = inject('toast', null)
 const emit = defineEmits(['login-success'])
 
 const isRegister = ref(false)
@@ -81,7 +83,12 @@ const handleSubmit = async () => {
 
     localStorage.setItem('user', JSON.stringify(user))
     emit('login-success', user)
-    router.push('/')
+
+    if (toast) toast.success(response.data.message || '操作成功')
+
+    // 如果有 redirect 参数，跳转到目标页面
+    const redirectPath = route.query.redirect || '/'
+    router.push(redirectPath)
   } catch (error) {
     errorMsg.value = error.response?.data?.error || '操作失败，请重试'
   } finally {

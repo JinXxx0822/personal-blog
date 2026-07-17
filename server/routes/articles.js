@@ -161,12 +161,55 @@ router.get('/stats/overview', (req, res) => {
 });
 
 // ========================================
+// 接口: GET /api/articles/related/:id - 获取相关文章
+// ========================================
+router.get('/related/:id', (req, res) => {
+  const { id } = req.params;
+  
+  // 先获取当前文章的分类和标签
+  db.get('SELECT category, tags FROM articles WHERE id = ?', [id], (err, article) => {
+    if (err || !article) {
+      return res.json([]);
+    }
+    
+    // 查找同分类或同标签的其他文章，按创建时间倒序，最多5篇
+    let likeParams = [];
+    let likeClauses = [`a.id != ?`];
+    likeParams.push(id);
+    
+    if (article.category) {
+      likeClauses.push(`a.category = ?`);
+      likeParams.push(article.category);
+    }
+    
+    if (article.tags) {
+      const tagConditions = article.tags.split(',').map(t => {
+        likeParams.push(`%${t.trim()}%`);
+        return `a.tags LIKE ?`;
+      });
+      likeClauses.push(`(${tagConditions.join(' OR ')})`);
+    }
+    
+    const sql = `SELECT DISTINCT a.id, a.title, a.summary, a.category, a.tags, a.cover_url, a.views, a.likes, a.created_at
+                 FROM articles a
+                 WHERE ${likeClauses.join(' AND ')}
+                 ORDER BY a.views DESC, a.created_at DESC
+                 LIMIT 5`;
+    
+    db.all(sql, likeParams, (err, rows) => {
+      if (err) return res.json([]);
+      res.json(rows);
+    });
+  });
+});
+
+// ========================================
 // 接口: GET /api/articles/:id - 获取文章详情（同时增加阅读量）
 // ========================================
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  if (['categories', 'hot', 'archive', 'tags', 'stats'].includes(id)) return;
+  if (['categories', 'hot', 'archive', 'tags', 'stats', 'related', 'favorites'].includes(id)) return;
 
   // 先增加阅读量
   db.run('UPDATE articles SET views = views + 1 WHERE id = ?', [id]);
@@ -185,14 +228,57 @@ router.get('/:id', (req, res) => {
 });
 
 // ========================================
-// 接口: POST /api/articles/:id/like - 点赞文章
+// 接口: POST /api/articles/:id/like - 点赞/取消点赞文章
 // ========================================
 router.post('/:id/like', (req, res) => {
   const { id } = req.params;
-  db.run('UPDATE articles SET likes = likes + 1 WHERE id = ?', [id], function(err) {
-    if (err) return res.status(500).json({ error: '点赞失败' });
-    if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
-    res.json({ message: '点赞成功' });
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    // 未登录用户直接 +1（无去重）
+    db.run('UPDATE articles SET likes = likes + 1 WHERE id = ?', [id], function(err) {
+      if (err) return res.status(500).json({ error: '点赞失败' });
+      if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
+      res.json({ message: '点赞成功', action: 'liked' });
+    });
+    return;
+  }
+
+  // 检查是否已点赞
+  db.get('SELECT id FROM likes WHERE user_id = ? AND article_id = ?', [user_id, id], (err, row) => {
+    if (err) return res.status(500).json({ error: '操作失败' });
+
+    if (row) {
+      // 已点赞 → 取消点赞
+      db.run('DELETE FROM likes WHERE user_id = ? AND article_id = ?', [user_id, id], (err) => {
+        if (err) return res.status(500).json({ error: '取消点赞失败' });
+        db.run('UPDATE articles SET likes = MAX(0, likes - 1) WHERE id = ?', [id], (err) => {
+          if (err) return res.status(500).json({ error: '操作失败' });
+          res.json({ message: '已取消点赞', action: 'unliked' });
+        });
+      });
+    } else {
+      // 未点赞 → 点赞
+      const likeId = uuidv4();
+      db.run('INSERT OR IGNORE INTO likes (id, user_id, article_id) VALUES (?, ?, ?)', [likeId, user_id, id], (err) => {
+        if (err) return res.status(500).json({ error: '点赞失败' });
+        db.run('UPDATE articles SET likes = likes + 1 WHERE id = ?', [id], (err) => {
+          if (err) return res.status(500).json({ error: '操作失败' });
+          res.json({ message: '点赞成功', action: 'liked' });
+        });
+      });
+    }
+  });
+});
+
+// ========================================
+// 接口: GET /api/articles/:id/like/:userId - 检查是否已点赞
+// ========================================
+router.get('/:id/like/:userId', (req, res) => {
+  const { id, userId } = req.params;
+  db.get('SELECT id FROM likes WHERE user_id = ? AND article_id = ?', [userId, id], (err, row) => {
+    if (err) return res.status(500).json({ error: '查询失败' });
+    res.json({ liked: !!row });
   });
 });
 
@@ -263,21 +349,23 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const { id } = req.params;
   db.run('DELETE FROM comments WHERE article_id = ?', [id], (err) => {
-    db.run('DELETE FROM favorites WHERE article_id = ?', [id], (err) => {
-      db.run('DELETE FROM articles WHERE id = ?', [id], function(err) {
-        if (err) {
-          console.error('删除文章失败:', err);
-          return res.status(500).json({ error: '删除文章失败' });
-        }
-        if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
-        res.json({ message: '文章删除成功' });
+    db.run('DELETE FROM likes WHERE article_id = ?', [id], (err) => {
+      db.run('DELETE FROM favorites WHERE article_id = ?', [id], (err) => {
+        db.run('DELETE FROM articles WHERE id = ?', [id], function(err) {
+          if (err) {
+            console.error('删除文章失败:', err);
+            return res.status(500).json({ error: '删除文章失败' });
+          }
+          if (this.changes === 0) return res.status(404).json({ error: '文章不存在' });
+          res.json({ message: '文章删除成功' });
+        });
       });
     });
   });
 });
 
 // ========================================
-// 接口: POST /api/articles/:id/upload - 上传封面图片
+// 接口: POST /api/articles/:id/upload - 更新封面图片
 // ========================================
 router.post('/:id/upload', (req, res) => {
   const { id } = req.params;

@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
 const db = require('../database');
+
+const SALT_ROUNDS = 10;
 
 // ========================================
 // 接口: POST /api/users/register - 注册
@@ -22,7 +25,7 @@ router.post('/register', (req, res) => {
   }
 
   // 检查用户名是否已存在
-  db.get('SELECT id FROM users WHERE username = ?', [username.trim()], (err, row) => {
+  db.get('SELECT id FROM users WHERE username = ?', [username.trim()], async (err, row) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
@@ -31,21 +34,26 @@ router.post('/register', (req, res) => {
       return res.status(400).json({ error: '用户名已存在' });
     }
 
-    const id = uuidv4();
-    const sql = 'INSERT INTO users (id, username, password, nickname) VALUES (?, ?, ?, ?)';
+    try {
+      const id = uuidv4();
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const sql = 'INSERT INTO users (id, username, password, nickname) VALUES (?, ?, ?, ?)';
 
-    db.run(sql, [id, username.trim(), password, nickname || username.trim()], function(err) {
-      if (err) {
-        return res.status(500).json({ error: '注册失败' });
-      }
+      db.run(sql, [id, username.trim(), hashedPassword, nickname || username.trim()], function(err) {
+        if (err) {
+          return res.status(500).json({ error: '注册失败' });
+        }
 
-      res.status(201).json({
-        id,
-        username: username.trim(),
-        nickname: nickname || username.trim(),
-        message: '注册成功'
+        res.status(201).json({
+          id,
+          username: username.trim(),
+          nickname: nickname || username.trim(),
+          message: '注册成功'
+        });
       });
-    });
+    } catch (err) {
+      return res.status(500).json({ error: '服务器错误' });
+    }
   });
 });
 
@@ -59,14 +67,37 @@ router.post('/login', (req, res) => {
     return res.status(400).json({ error: '用户名和密码不能为空' });
   }
 
-  const sql = 'SELECT id, username, nickname FROM users WHERE username = ? AND password = ?';
+  const sql = 'SELECT id, username, password, nickname FROM users WHERE username = ?';
 
-  db.get(sql, [username.trim(), password], (err, row) => {
+  db.get(sql, [username.trim()], async (err, row) => {
     if (err) {
       return res.status(500).json({ error: '服务器错误' });
     }
 
     if (!row) {
+      return res.status(401).json({ error: '用户名或密码错误' });
+    }
+
+    // 兼容旧明文密码和新的 bcrypt 密码
+    let match = false;
+    if (row.password.startsWith('$2')) {
+      // bcrypt 加密的密码
+      try {
+        match = await bcrypt.compare(password, row.password);
+      } catch (e) {
+        match = false;
+      }
+    } else {
+      // 旧明文密码，直接比较并自动升级
+      match = (password === row.password);
+      if (match) {
+        // 自动将旧密码升级为 bcrypt
+        const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+        db.run('UPDATE users SET password = ? WHERE id = ?', [hashed, row.id]);
+      }
+    }
+
+    if (!match) {
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 

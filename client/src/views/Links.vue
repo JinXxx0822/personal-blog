@@ -35,9 +35,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, inject } from 'vue'
 import axios from 'axios'
 
+const toast = inject('toast', null)
 const links = ref([])
 const loading = ref(true)
 const user = ref(null)
@@ -55,7 +56,11 @@ const fetchLinks = async () => {
 }
 
 const addLink = async () => {
-  if (!newName.value || !newUrl.value) return alert('名称和链接不能为空')
+  if (!newName.value || !newUrl.value) {
+    if (toast) toast.warning('名称和链接不能为空')
+    else alert('名称和链接不能为空')
+    return
+  }
   adding.value = true
   try {
     await axios.post('/api/links', {
@@ -67,8 +72,10 @@ const addLink = async () => {
     newUrl.value = ''
     newDesc.value = ''
     await fetchLinks()
+    if (toast) toast.success('友链添加成功')
   } catch (e) {
-    alert('添加失败')
+    if (toast) toast.error('添加失败')
+    else alert('添加失败')
   } finally {
     adding.value = false
   }
@@ -80,7 +87,8 @@ const deleteLink = async (id) => {
     await axios.delete(`/api/links/${id}`)
     await fetchLinks()
   } catch (e) {
-    alert('删除失败')
+    if (toast) toast.error('删除失败')
+    else alert('删除失败')
   }
 }
 

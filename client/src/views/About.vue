@@ -31,10 +31,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
 import axios from 'axios'
 import { marked } from 'marked'
 
+const toast = inject('toast', null)
 const aboutContent = ref('')
 const content = ref('')
 const loading = ref(true)
@@ -62,9 +63,11 @@ const save = async () => {
   try {
     await axios.post('/api/about', { content: content.value })
     aboutContent.value = content.value
-    alert('保存成功')
+    if (toast) toast.success('保存成功')
+    else alert('保存成功')
   } catch (e) {
-    alert('保存失败')
+    if (toast) toast.error('保存失败')
+    else alert('保存失败')
   } finally {
     saving.value = false
   }

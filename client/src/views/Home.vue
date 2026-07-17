@@ -1,140 +1,171 @@
 <template>
   <div class="home">
-    <!-- 站点统计卡片 -->
-    <div class="stats-bar">
-      <div class="stat-card">
-        <span class="stat-num">{{ stats.total }}</span>
-        <span class="stat-label">文章</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">{{ stats.totalCategories }}</span>
-        <span class="stat-label">分类</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">{{ stats.totalViews }}</span>
-        <span class="stat-label">阅读</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-num">{{ stats.totalComments }}</span>
-        <span class="stat-label">评论</span>
-      </div>
-    </div>
-
-    <!-- 热门文章推荐轮播 -->
-    <div class="hot-section" v-if="hotArticles.length > 0">
-      <h3>🔥 热门推荐</h3>
-      <div class="hot-grid">
-        <div class="hot-card hot-card-main" v-if="hotArticles[0]" @click="goToDetail(hotArticles[0].id)">
-          <div class="hot-cover" v-if="hotArticles[0].cover_url">
-            <img :src="hotArticles[0].cover_url" :alt="hotArticles[0].title" />
-          </div>
-          <div class="hot-info">
-            <span class="hot-badge">HOT</span>
-            <h4>{{ hotArticles[0].title }}</h4>
-            <p>{{ hotArticles[0].summary }}</p>
-            <div class="hot-meta">
-              <span>👁 {{ hotArticles[0].views }} 阅读</span>
-              <span>❤️ {{ hotArticles[0].likes }} 点赞</span>
-            </div>
-          </div>
-        </div>
-        <div class="hot-side">
-          <div v-for="(a, i) in hotArticles.slice(1, 4)" :key="a.id" class="hot-mini" @click="goToDetail(a.id)">
-            <span class="hot-rank">0{{ i + 2 }}</span>
-            <div class="hot-mini-info">
-              <h5>{{ a.title }}</h5>
-              <span>👁 {{ a.views }} 阅读 · ❤️ {{ a.likes }}</span>
-            </div>
-          </div>
+    <!-- 骨架屏加载 -->
+    <template v-if="pageLoading">
+      <div class="stats-bar skeleton-row">
+        <div class="skeleton-card" v-for="i in 4" :key="'sk' + i">
+          <div class="skeleton-line tall"></div>
+          <div class="skeleton-line short"></div>
         </div>
       </div>
-    </div>
-
-    <!-- 搜索和分类 -->
-    <div class="filter-bar">
-      <div class="search-box">
-        <input v-model="keyword" @keyup.enter="search" placeholder="🔍 搜索文章..." />
-        <button @click="search" class="btn-search">搜索</button>
+      <div class="skeleton-row hot-skel">
+        <div class="skeleton-card" style="flex: 2; min-height: 180px"></div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 0.6rem">
+          <div class="skeleton-card" v-for="i in 3" :key="'hsk' + i" style="flex: 1; min-height: 52px"></div>
+        </div>
       </div>
-      <div class="category-tabs">
-        <button 
-          v-for="cat in categories" 
-          :key="cat"
-          :class="{ active: activeCategory === cat }"
-          @click="filterByCategory(cat)"
-        >{{ cat }}</button>
-      </div>
-    </div>
+      <div class="skeleton-card" style="height: 100px; margin-bottom: 1.5rem"></div>
+      <div class="skeleton-card" style="height: 80px; margin-bottom: 1.5rem"></div>
+      <div class="skeleton-card" style="height: 400px"></div>
+    </template>
 
-    <!-- 标签云 -->
-    <div class="tag-cloud-section" v-if="tagCloud.length > 0">
-      <h3>🏷️ 热门标签</h3>
-      <div class="tag-cloud">
-        <span v-for="tag in tagCloud" :key="tag.name" 
-          class="tag-item" 
-          :style="{ fontSize: (0.8 + tag.count * 0.15) + 'rem', opacity: 0.6 + tag.count * 0.1 }"
-          @click="filterByTag(tag.name)"
-        >{{ tag.name }}</span>
-      </div>
-    </div>
-
-    <!-- 文章列表 -->
-    <div class="articles-section">
-      <div class="section-header">
-        <h3>{{ activeCategory === '全部' ? '最新文章' : activeCategory }}</h3>
-        <span class="article-count">共 {{ total }} 篇</span>
+    <template v-else>
+      <!-- 站点统计卡片 -->
+      <div class="stats-bar">
+        <div class="stat-card">
+          <span class="stat-num">{{ stats.total }}</span>
+          <span class="stat-label">文章</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ stats.totalCategories }}</span>
+          <span class="stat-label">分类</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ stats.totalViews }}</span>
+          <span class="stat-label">阅读</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num">{{ stats.totalComments }}</span>
+          <span class="stat-label">评论</span>
+        </div>
       </div>
 
-      <div v-if="loading" class="loading">
-        <div class="spinner"></div>
-        <p>加载中...</p>
-      </div>
-
-      <div v-else-if="articles.length === 0" class="empty-state">
-        <p>📭 {{ keyword ? '没有找到相关文章' : '暂无文章，点击右上角"写文章"开始创作吧！' }}</p>
-      </div>
-
-      <div v-else class="articles-grid">
-        <article
-          v-for="article in articles"
-          :key="article.id"
-          class="article-card"
-          @click="goToDetail(article.id)"
-        >
-          <div class="article-cover" v-if="article.cover_url">
-            <img :src="article.cover_url" :alt="article.title" />
-          </div>
-          <div class="article-info">
-            <div class="article-header">
-              <h4 class="article-title">{{ article.title }}</h4>
-              <span class="article-category">{{ article.category }}</span>
+      <!-- 热门文章推荐 -->
+      <div class="hot-section" v-if="hotArticles.length > 0">
+        <h3>🔥 热门推荐</h3>
+        <div class="hot-grid">
+          <div class="hot-card hot-card-main" v-if="hotArticles[0]" @click="goToDetail(hotArticles[0].id)">
+            <div class="hot-cover" v-if="hotArticles[0].cover_url">
+              <img :src="hotArticles[0].cover_url" :alt="hotArticles[0].title" />
             </div>
-            <p class="article-summary">{{ article.summary }}</p>
-            <div class="article-footer">
-              <div class="article-tags" v-if="article.tags">
-                <span v-for="tag in getTags(article.tags)" :key="tag" class="tag" @click.stop="filterByTag(tag)">{{ tag }}</span>
-              </div>
-              <div class="article-stats-row">
-                <span class="article-date">{{ formatDate(article.created_at) }}</span>
-                <span class="stat">👁 {{ article.views || 0 }}</span>
-                <span class="stat">❤️ {{ article.likes || 0 }}</span>
-                <span class="read-more">阅读全文 →</span>
+            <div class="hot-info">
+              <span class="hot-badge">HOT</span>
+              <h4>{{ hotArticles[0].title }}</h4>
+              <p>{{ hotArticles[0].summary }}</p>
+              <div class="hot-meta">
+                <span>👁 {{ hotArticles[0].views }} 阅读</span>
+                <span>❤️ {{ hotArticles[0].likes }} 点赞</span>
               </div>
             </div>
           </div>
-        </article>
+          <div class="hot-side">
+            <div v-for="(a, i) in hotArticles.slice(1, 4)" :key="a.id" class="hot-mini" @click="goToDetail(a.id)">
+              <span class="hot-rank">0{{ i + 2 }}</span>
+              <div class="hot-mini-info">
+                <h5>{{ a.title }}</h5>
+                <span>👁 {{ a.views }} 阅读 · ❤️ {{ a.likes }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 分页 -->
-      <div class="pagination" v-if="totalPages > 1">
-        <button :disabled="page <= 1" @click="changePage(page - 1)">上一页</button>
-        <span v-for="p in displayPages" :key="p">
-          <button v-if="p !== '...'" :class="{ active: p === page }" @click="changePage(p)">{{ p }}</button>
-          <span v-else class="ellipsis">...</span>
-        </span>
-        <button :disabled="page >= totalPages" @click="changePage(page + 1)">下一页</button>
+      <!-- 搜索和分类 -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <input v-model="keyword" @input="onSearchInput" placeholder="🔍 搜索文章..." />
+          <button @click="doSearch" class="btn-search">搜索</button>
+        </div>
+        <div class="category-tabs">
+          <button 
+            v-for="cat in categories" 
+            :key="cat"
+            :class="{ active: activeCategory === cat }"
+            @click="filterByCategory(cat)"
+          >{{ cat }}</button>
+        </div>
       </div>
-    </div>
+
+      <!-- 标签云 -->
+      <div class="tag-cloud-section" v-if="tagCloud.length > 0">
+        <h3>🏷️ 热门标签</h3>
+        <div class="tag-cloud">
+          <span v-for="tag in tagCloud" :key="tag.name" 
+            class="tag-item" 
+            :style="{ fontSize: (0.8 + tag.count * 0.15) + 'rem', opacity: 0.6 + tag.count * 0.1 }"
+            @click="filterByTag(tag.name)"
+          >{{ tag.name }}</span>
+        </div>
+      </div>
+
+      <!-- 文章列表 -->
+      <div class="articles-section">
+        <div class="section-header">
+          <h3>{{ activeCategory === '全部' ? '最新文章' : activeCategory }}</h3>
+          <span class="article-count">共 {{ total }} 篇</span>
+        </div>
+
+        <div v-if="loading" class="loading">
+          <div class="spinner"></div>
+          <p>加载中...</p>
+        </div>
+
+        <div v-else-if="articles.length === 0" class="empty-state">
+          <p>📭 {{ keyword ? '没有找到相关文章' : '暂无文章，点击右上角"写文章"开始创作吧！' }}</p>
+        </div>
+
+        <div v-else class="articles-grid">
+          <article
+            v-for="article in articles"
+            :key="article.id"
+            class="article-card"
+            @click="goToDetail(article.id)"
+          >
+            <div class="article-cover" v-if="article.cover_url">
+              <img :src="article.cover_url" :alt="article.title" />
+            </div>
+            <div class="article-info">
+              <div class="article-header">
+                <h4 class="article-title">{{ article.title }}</h4>
+                <span class="article-category">{{ article.category }}</span>
+              </div>
+              <p class="article-summary">{{ article.summary }}</p>
+              <div class="article-footer">
+                <div class="article-tags" v-if="article.tags">
+                  <span v-for="tag in getTags(article.tags)" :key="tag" class="tag" @click.stop="filterByTag(tag)">{{ tag }}</span>
+                </div>
+                <div class="article-stats-row">
+                  <span class="article-date">{{ formatDate(article.created_at) }}</span>
+                  <span class="stat">👁 {{ article.views || 0 }}</span>
+                  <span class="stat">❤️ {{ article.likes || 0 }}</span>
+                  <span class="read-more">阅读全文 →</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <!-- 分页（含跳转） -->
+        <div class="pagination" v-if="totalPages > 1">
+          <button :disabled="page <= 1" @click="changePage(page - 1)">上一页</button>
+          <span v-for="p in displayPages" :key="p">
+            <button v-if="p !== '...'" :class="{ active: p === page }" @click="changePage(p)">{{ p }}</button>
+            <span v-else class="ellipsis">...</span>
+          </span>
+          <button :disabled="page >= totalPages" @click="changePage(page + 1)">下一页</button>
+          <span class="page-jump">
+            跳至 <input 
+              v-model="jumpPage" 
+              @keyup.enter="jumpToPage" 
+              @blur="jumpToPage"
+              type="number" 
+              :min="1" 
+              :max="totalPages" 
+            /> 页
+          </span>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -142,19 +173,33 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { inject } from 'vue'
 
 const router = useRouter()
+const toast = inject('toast', null)
+
 const articles = ref([])
 const hotArticles = ref([])
 const tagCloud = ref([])
 const stats = ref({ total: 0, totalCategories: 0, totalViews: 0, totalComments: 0 })
 const loading = ref(true)
+const pageLoading = ref(true)
 const page = ref(1)
 const total = ref(0)
 const totalPages = ref(0)
 const keyword = ref('')
 const activeCategory = ref('全部')
 const categories = ref(['全部'])
+const jumpPage = ref('')
+
+// 搜索防抖
+let searchTimer = null
+const onSearchInput = () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    doSearch()
+  }, 400)
+}
 
 const displayPages = computed(() => {
   const pages = []
@@ -171,6 +216,14 @@ const displayPages = computed(() => {
   }
   return pages
 })
+
+const jumpToPage = () => {
+  const target = parseInt(jumpPage.value)
+  if (target >= 1 && target <= totalPages.value) {
+    changePage(target)
+  }
+  jumpPage.value = ''
+}
 
 const fetchStats = async () => {
   try {
@@ -217,7 +270,7 @@ const fetchCategories = async () => {
   } catch (e) { /* ignore */ }
 }
 
-const search = () => {
+const doSearch = () => {
   page.value = 1
   fetchArticles()
 }
@@ -254,17 +307,55 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-onMounted(() => {
-  fetchStats()
-  fetchHotArticles()
-  fetchTagCloud()
-  fetchCategories()
-  fetchArticles()
+onMounted(async () => {
+  // 并行加载所有数据
+  await Promise.all([
+    fetchStats(),
+    fetchHotArticles(),
+    fetchTagCloud(),
+    fetchCategories(),
+    fetchArticles()
+  ])
+  pageLoading.value = false
 })
 </script>
 
 <style scoped>
 .home { max-width: 100%; }
+
+/* 骨架屏 */
+.skeleton-row {
+  display: flex;
+  gap: 1rem;
+}
+.skeleton-card {
+  background: #e8e8e8;
+  border-radius: 12px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  flex: 1;
+  padding: 1.5rem;
+  min-height: 60px;
+}
+.dark .skeleton-card {
+  background: #1a1a4e;
+}
+.skeleton-line {
+  height: 14px;
+  background: #d0d0d0;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.dark .skeleton-line {
+  background: #2a2a6e;
+}
+.skeleton-line.tall { height: 2rem; width: 60%; }
+.skeleton-line.short { width: 40%; }
+.hot-skel { margin-bottom: 1.5rem; }
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
 
 /* 统计卡片 */
 .stats-bar {
@@ -704,6 +795,7 @@ onMounted(() => {
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid #eee;
+  flex-wrap: wrap;
 }
 
 .dark .pagination { border-color: #0f3460; }
@@ -733,6 +825,36 @@ onMounted(() => {
 
 .ellipsis { padding: 0 0.3rem; }
 
+.page-jump {
+  margin-left: 0.8rem;
+  font-size: 0.85rem;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.page-jump input {
+  width: 48px;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 0.85rem;
+  background: inherit;
+  color: inherit;
+  outline: none;
+}
+
+.page-jump input:focus {
+  border-color: #667eea;
+}
+
+.dark .page-jump input {
+  border-color: #1a1a4e;
+  background: #0f3460;
+}
+
 @media (max-width: 768px) {
   .stats-bar {
     grid-template-columns: repeat(2, 1fr);
@@ -750,6 +872,15 @@ onMounted(() => {
   }
   .article-stats-row {
     flex-wrap: wrap;
+  }
+  .page-jump {
+    width: 100%;
+    justify-content: center;
+    margin-left: 0;
+    margin-top: 0.3rem;
+  }
+  .skeleton-row {
+    flex-direction: column;
   }
 }
 </style>

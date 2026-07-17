@@ -69,13 +69,22 @@ function initDatabase() {
       content TEXT NOT NULL,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS likes (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      article_id TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, article_id),
+      FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+    );
   `;
 
   db.exec(sql, (err) => {
     if (err) {
       console.error('数据库初始化失败:', err);
     } else {
-      console.log('数据库表初始化成功（articles + comments + users + favorites + links + about）');
+      console.log('数据库表初始化成功（articles + comments + users + favorites + likes + links + about）');
     }
   });
 }
