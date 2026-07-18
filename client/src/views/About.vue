@@ -31,6 +31,7 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import api from '../api'
+import { useUser } from '../stores/user.js'
 import { marked } from 'marked'
 import EmptyState from '../components/EmptyState.vue'
 
@@ -39,7 +40,7 @@ const aboutContent = ref('')
 const content = ref('')
 const loading = ref(true)
 const saving = ref(false)
-const user = ref(null)
+const { user } = useUser()
 
 const renderedContent = computed(() => {
   return aboutContent.value ? marked(aboutContent.value) : ''
@@ -73,8 +74,6 @@ const save = async () => {
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('user')
-  if (saved) try { user.value = JSON.parse(saved) } catch (e) {}
   fetchAbout()
 })
 </script>

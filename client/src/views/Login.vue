@@ -81,6 +81,10 @@ const handleSubmit = async () => {
       nickname: response.data.nickname
     }
 
+    // 保存 token 和用户信息
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token)
+    }
     localStorage.setItem('user', JSON.stringify(user))
     emit('login-success', user)
 

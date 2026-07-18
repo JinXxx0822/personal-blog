@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database');
+const { authMiddleware } = require('../middleware/auth');
 
 // 获取关于我内容
 router.get('/', (req, res) => {
@@ -12,7 +13,7 @@ router.get('/', (req, res) => {
 });
 
 // 保存关于我内容
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, (req, res) => {
   const { content } = req.body;
   if (!content) return res.status(400).json({ error: '内容不能为空' });
   

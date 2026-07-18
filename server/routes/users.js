@@ -3,6 +3,7 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const db = require('../database');
+const { generateToken } = require('../middleware/auth');
 
 const SALT_ROUNDS = 10;
 
@@ -101,10 +102,12 @@ router.post('/login', (req, res) => {
       return res.status(401).json({ error: '用户名或密码错误' });
     }
 
+    const token = generateToken({ id: row.id, username: row.username });
     res.json({
       id: row.id,
       username: row.username,
       nickname: row.nickname,
+      token,
       message: '登录成功'
     });
   });

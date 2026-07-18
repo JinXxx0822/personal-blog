@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database');
+const { authMiddleware } = require('../middleware/auth');
 
 // 获取当前活跃的公告
 router.get('/', (req, res) => {
@@ -20,7 +21,7 @@ router.get('/all', (req, res) => {
 });
 
 // 创建公告
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, (req, res) => {
   const { content } = req.body;
   if (!content || !content.trim()) {
     return res.status(400).json({ error: '公告内容不能为空' });
@@ -34,7 +35,7 @@ router.post('/', (req, res) => {
 });
 
 // 更新公告（停用/启用或修改内容）
-router.put('/:id', (req, res) => {
+router.put('/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   const { content, is_active } = req.body;
 
@@ -62,7 +63,7 @@ router.put('/:id', (req, res) => {
 });
 
 // 删除公告
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   db.run('DELETE FROM announcements WHERE id = ?', [id], function(err) {
     if (err) return res.status(500).json({ error: '删除公告失败' });

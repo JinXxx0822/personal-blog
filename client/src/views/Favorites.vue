@@ -32,14 +32,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useUser } from '../stores/user.js'
 import api from '../api'
 import EmptyState from '../components/EmptyState.vue'
 
 const favorites = ref([])
 const loading = ref(true)
-const user = ref(null)
+const { user } = useUser()
 
 const fetchFavorites = async () => {
+  if (!user.value) { loading.value = false; return }
   try {
     const res = await api.get(`/api/articles/favorites/user/${user.value.id}`)
     favorites.value = res.data
@@ -53,13 +55,7 @@ const formatDate = (dateStr) => {
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('user')
-  if (saved) {
-    try { user.value = JSON.parse(saved) } catch (e) {}
-    fetchFavorites()
-  } else {
-    loading.value = false
-  }
+  fetchFavorites()
 })
 </script>
 

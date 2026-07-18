@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database');
+const { authMiddleware } = require('../middleware/auth');
 
 // ========================================
 // 接口: GET /api/comments/:articleId - 获取文章评论（含嵌套回复）
@@ -40,7 +41,7 @@ router.get('/:articleId', (req, res) => {
 // ========================================
 // 接口: POST /api/comments - 创建评论（支持回复）
 // ========================================
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, (req, res) => {
   const { article_id, author, content, parent_id } = req.body;
 
   if (!article_id) {
@@ -94,7 +95,7 @@ router.post('/', (req, res) => {
 // ========================================
 // 接口: DELETE /api/comments/:id - 删除评论（级联删除回复）
 // ========================================
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   
   // 先删除子回复

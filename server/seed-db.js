@@ -378,16 +378,18 @@ function seedComments(db, articles, now, callback) {
         if (err) console.error('  ❌ 插入评论失败:', err.message);
         if (count === comments.length) {
           console.log(`  ✓ 评论创建完成 (${comments.length} 条)`);
-          callback();
+          // 更新回复关系：第二条评论回复第一条
+          db.run('UPDATE comments SET parent_id = ? WHERE id = ?',
+            [comments[0].id, comments[1].id],
+            (err) => {
+              if (err) console.error('  ❌ 更新评论关系失败:', err.message);
+              callback();
+            }
+          );
         }
       }
     );
   });
-  
-  // 更新第一条评论的 parent_id 关系（回复关系）
-  setTimeout(() => {
-    db.run('UPDATE comments SET parent_id = ? WHERE id = ?', [comments[0].id, comments[1].id]);
-  }, 500);
 }
 
 function seedAnnouncements(db, now, callback) {

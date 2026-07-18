@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database');
+const { authMiddleware } = require('../middleware/auth');
 
 // 获取友情链接列表
 router.get('/', (req, res) => {
@@ -12,7 +13,7 @@ router.get('/', (req, res) => {
 });
 
 // 添加友情链接
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, (req, res) => {
   const { name, url, description } = req.body;
   if (!name || !url) return res.status(400).json({ error: '名称和链接不能为空' });
   
@@ -25,7 +26,7 @@ router.post('/', (req, res) => {
 });
 
 // 删除友情链接
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authMiddleware, (req, res) => {
   db.run('DELETE FROM links WHERE id = ?', [req.params.id], function(err) {
     if (err) return res.status(500).json({ error: '删除失败' });
     res.json({ message: '删除成功' });

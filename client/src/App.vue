@@ -90,12 +90,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUser } from './stores/user.js'
 import api from './api'
 import Toast from './components/Toast.vue'
 
 const router = useRouter()
+const { user, login, logout: doLogout, restore } = useUser()
 const isDark = ref(false)
-const user = ref(null)
 const showBackTop = ref(false)
 const progressPercent = ref(0)
 const announcement = ref(null)
@@ -109,13 +110,11 @@ const toggleDark = () => {
 }
 
 const onLogin = (userData) => {
-  user.value = userData
-  localStorage.setItem('user', JSON.stringify(userData))
+  login(userData)
 }
 
 const logout = () => {
-  user.value = null
-  localStorage.removeItem('user')
+  doLogout()
   router.push('/')
 }
 
@@ -158,10 +157,7 @@ const handleScroll = () => {
 
 onMounted(() => {
   isDark.value = localStorage.getItem('darkMode') === '1'
-  const saved = localStorage.getItem('user')
-  if (saved) {
-    try { user.value = JSON.parse(saved) } catch (e) {}
-  }
+  restore()
   window.addEventListener('scroll', handleScroll, { passive: true })
   fetchAnnouncement()
 })

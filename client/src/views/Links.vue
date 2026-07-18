@@ -34,13 +34,14 @@
 
 <script setup>
 import { ref, onMounted, inject } from 'vue'
+import { useUser } from '../stores/user.js'
 import api from '../api'
 import EmptyState from '../components/EmptyState.vue'
 
 const toast = inject('toast', null)
 const links = ref([])
 const loading = ref(true)
-const user = ref(null)
+const { user } = useUser()
 const newName = ref('')
 const newUrl = ref('')
 const newDesc = ref('')
@@ -92,8 +93,6 @@ const deleteLink = async (id) => {
 }
 
 onMounted(() => {
-  const saved = localStorage.getItem('user')
-  if (saved) try { user.value = JSON.parse(saved) } catch (e) {}
   fetchLinks()
 })
 </script>

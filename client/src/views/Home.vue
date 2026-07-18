@@ -239,12 +239,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUser } from '../stores/user.js'
 import api from '../api'
 import { inject } from 'vue'
 import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 const toast = inject('toast', null)
+const { user } = useUser()
 
 const articles = ref([])
 const hotArticles = ref([])

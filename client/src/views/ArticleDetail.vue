@@ -245,6 +245,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useUser } from '../stores/user.js'
 import api from '../api'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
@@ -269,7 +270,7 @@ const pageLoading = ref(true)
 const comments = ref([])
 const newComment = ref('')
 const submitting = ref(false)
-const user = ref(null)
+const { user } = useUser()
 const liked = ref(false)
 const favorited = ref(false)
 const toc = ref([])
@@ -483,6 +484,7 @@ const checkLikeStatus = async () => {
 const submitComment = async () => {
   if (!newComment.value.trim()) return
   submitting.value = true
+  const wasReply = !!replyTarget.value
   try {
     await api.post('/api/comments', {
       article_id: route.params.id,
@@ -493,7 +495,7 @@ const submitComment = async () => {
     newComment.value = ''
     replyTarget.value = null
     await fetchComments()
-    toast?.success(replyTarget.value ? '回复成功' : '评论发布成功')
+    toast?.success(wasReply ? '回复成功' : '评论发布成功')
   } catch (e) {
     toast?.error(e.response?.data?.error || '评论失败')
   } finally {
@@ -539,8 +541,6 @@ const formatDate = (dateStr) => {
 
 // 生命周期
 onMounted(async () => {
-  const saved = localStorage.getItem('user')
-  if (saved) try { user.value = JSON.parse(saved) } catch (e) {}
 
   await Promise.all([
     fetchArticle(),

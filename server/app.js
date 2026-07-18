@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./database');
+const { optionalAuth } = require('./middleware/auth');
 const articlesRouter = require('./routes/articles');
 const commentsRouter = require('./routes/comments');
 const usersRouter = require('./routes/users');
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 3000;
 // 中间件
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+app.use(optionalAuth); // 全局可选认证，有 token 就解析 req.user
 
 // 路由
 app.use('/api/articles', articlesRouter);

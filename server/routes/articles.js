@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { authMiddleware } = require('../middleware/auth');
 const db = require('../database');
 
 // ========================================
@@ -231,7 +232,9 @@ router.get('/:id/nav', (req, res) => {
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  if (['categories', 'hot', 'archive', 'tags', 'stats', 'related', 'favorites', 'nav'].includes(id)) return;
+  if (['categories', 'hot', 'archive', 'tags', 'stats', 'related', 'favorites', 'nav'].includes(id)) {
+    return res.status(404).json({ error: '文章不存在' });
+  }
 
   // 先增加阅读量
   db.run('UPDATE articles SET views = views + 1 WHERE id = ?', [id]);
@@ -307,7 +310,7 @@ router.get('/:id/like/:userId', (req, res) => {
 // ========================================
 // 接口: POST /api/articles - 创建文章
 // ========================================
-router.post('/', (req, res) => {
+router.post('/', authMiddleware, (req, res) => {
   const { title, summary, content, category, tags, cover_url } = req.body;
 
   if (!title || !title.trim()) {
@@ -324,18 +327,19 @@ router.post('/', (req, res) => {
   }
 
   const id = uuidv4();
-  const sql = 'INSERT INTO articles (id, title, summary, content, category, tags, cover_url) VALUES (?, ?, ?, ?, ?, ?, ?)';
+  const sql = 'INSERT INTO articles (id, title, summary, content, category, tags, cover_url, is_pinned) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
   const finalSummary = summary && summary.trim() ? summary.trim() : content.trim().substring(0, 100);
   const finalCategory = category && category.trim() ? category.trim() : '笔记';
   const finalTags = tags && tags.trim() ? tags.trim() : '';
+  const is_pinned = req.body.is_pinned ? 1 : 0;
 
-  db.run(sql, [id, title.trim(), finalSummary, content.trim(), finalCategory, finalTags, cover_url || ''], function(err) {
+  db.run(sql, [id, title.trim(), finalSummary, content.trim(), finalCategory, finalTags, cover_url || '', is_pinned], function(err) {
     if (err) {
       console.error('创建文章失败:', err);
       return res.status(500).json({ error: '创建文章失败' });
     }
     res.status(201).json({
-      id, title: title.trim(), summary: finalSummary, category: finalCategory, tags: finalTags,
+      id, title: title.trim(), summary: finalSummary, category: finalCategory, tags: finalTags, is_pinned: !!is_pinned,
       message: '文章创建成功'
     });
   });
@@ -344,7 +348,7 @@ router.post('/', (req, res) => {
 // ========================================
 // 接口: PUT /api/articles/:id - 更新文章
 // ========================================
-router.put('/:id', (req, res) => {
+router.put('/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   const { title, summary, content, category, tags, cover_url, is_pinned } = req.body;
 
@@ -368,7 +372,7 @@ router.put('/:id', (req, res) => {
 // ========================================
 // 接口: DELETE /api/articles/:id - 删除文章
 // ========================================
-router.delete('/:id', (req, res) => {
+router.delete('/:id', authMiddleware, (req, res) => {
   const { id } = req.params;
   db.run('DELETE FROM comments WHERE article_id = ?', [id], (err) => {
     db.run('DELETE FROM likes WHERE article_id = ?', [id], (err) => {
