@@ -24,6 +24,7 @@ function initDatabase() {
       cover_url TEXT DEFAULT '',
       views INTEGER DEFAULT 0,
       likes INTEGER DEFAULT 0,
+      is_pinned INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -33,8 +34,18 @@ function initDatabase() {
       article_id TEXT NOT NULL,
       author TEXT DEFAULT '匿名',
       content TEXT NOT NULL,
+      parent_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE
+      FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+      FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS announcements (
+      id TEXT PRIMARY KEY,
+      content TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS users (
@@ -84,8 +95,35 @@ function initDatabase() {
     if (err) {
       console.error('数据库初始化失败:', err);
     } else {
-      console.log('数据库表初始化成功（articles + comments + users + favorites + likes + links + about）');
+      console.log('数据库表初始化成功');
+      // 执行增量迁移（为已有表添加新字段）
+      runMigrations();
     }
+  });
+}
+
+function runMigrations() {
+  const migrations = [
+    // 为 articles 表添加 is_pinned 字段（如果不存在）
+    `ALTER TABLE articles ADD COLUMN is_pinned INTEGER DEFAULT 0`,
+    // 为 comments 表添加 parent_id 字段（如果不存在）
+    `ALTER TABLE comments ADD COLUMN parent_id TEXT`,
+  ];
+
+  let pending = migrations.length;
+  migrations.forEach(sql => {
+    db.run(sql, (err) => {
+      if (err) {
+        // 字段已存在时忽略错误
+        if (!err.message.includes('duplicate column')) {
+          console.error('迁移失败:', err.message);
+        }
+      }
+      pending--;
+      if (pending === 0) {
+        console.log('数据库迁移完成 (is_pinned, parent_id, announcements)');
+      }
+    });
   });
 }
 

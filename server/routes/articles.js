@@ -42,9 +42,9 @@ router.get('/', (req, res) => {
     const total = countRow.total;
     const totalPages = Math.ceil(total / limit);
 
-    const dataSQL = `SELECT id, title, summary, category, tags, cover_url, views, likes, created_at 
+    const dataSQL = `SELECT id, title, summary, category, tags, cover_url, views, likes, is_pinned, created_at 
                      FROM articles ${whereSQL} 
-                     ORDER BY created_at DESC 
+                     ORDER BY is_pinned DESC, created_at DESC 
                      LIMIT ? OFFSET ?`;
 
     db.all(dataSQL, [...params, limit, offset], (err, rows) => {
@@ -204,12 +204,34 @@ router.get('/related/:id', (req, res) => {
 });
 
 // ========================================
+// 接口: GET /api/articles/:id/nav - 获取上一篇/下一篇
+// ========================================
+router.get('/:id/nav', (req, res) => {
+  const { id } = req.params;
+
+  // 获取全部文章按列表排序
+  db.all('SELECT id, title FROM articles ORDER BY is_pinned DESC, created_at DESC', [], (err, rows) => {
+    if (err) return res.json({ prev: null, next: null });
+    
+    const idx = rows.findIndex(r => r.id === id);
+    if (idx === -1) return res.json({ prev: null, next: null });
+
+    // next = 较新的文章（列表中前一条，idx - 1）
+    // prev = 较旧的文章（列表中后一条，idx + 1）
+    res.json({
+      prev: idx + 1 < rows.length ? rows[idx + 1] : null,  // 上一页（较旧）
+      next: idx - 1 >= 0 ? rows[idx - 1] : null             // 下一页（较新）
+    });
+  });
+});
+
+// ========================================
 // 接口: GET /api/articles/:id - 获取文章详情（同时增加阅读量）
 // ========================================
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  if (['categories', 'hot', 'archive', 'tags', 'stats', 'related', 'favorites'].includes(id)) return;
+  if (['categories', 'hot', 'archive', 'tags', 'stats', 'related', 'favorites', 'nav'].includes(id)) return;
 
   // 先增加阅读量
   db.run('UPDATE articles SET views = views + 1 WHERE id = ?', [id]);
@@ -324,16 +346,16 @@ router.post('/', (req, res) => {
 // ========================================
 router.put('/:id', (req, res) => {
   const { id } = req.params;
-  const { title, summary, content, category, tags, cover_url } = req.body;
+  const { title, summary, content, category, tags, cover_url, is_pinned } = req.body;
 
   if (!title || !title.trim()) return res.status(400).json({ error: '标题不能为空' });
   if (!content || !content.trim()) return res.status(400).json({ error: '正文不能为空' });
 
-  const sql = 'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, tags = ?, cover_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+  const sql = 'UPDATE articles SET title = ?, summary = ?, content = ?, category = ?, tags = ?, cover_url = ?, is_pinned = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?';
   const finalSummary = summary && summary.trim() ? summary.trim() : content.trim().substring(0, 100);
   const finalCategory = category && category.trim() ? category.trim() : '笔记';
 
-  db.run(sql, [title.trim(), finalSummary, content.trim(), finalCategory, tags || '', cover_url || '', id], function(err) {
+  db.run(sql, [title.trim(), finalSummary, content.trim(), finalCategory, tags || '', cover_url || '', is_pinned ? 1 : 0, id], function(err) {
     if (err) {
       console.error('更新文章失败:', err);
       return res.status(500).json({ error: '更新文章失败' });

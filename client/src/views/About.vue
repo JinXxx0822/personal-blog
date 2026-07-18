@@ -16,9 +16,7 @@
       <div class="spinner"></div>
     </div>
 
-    <div v-else-if="!aboutContent && !user" class="empty">
-      <p>博主还没有写自我介绍</p>
-    </div>
+    <EmptyState v-else-if="!aboutContent && !user" icon="👤" title="还没有自我介绍" description="博主还没有写自我介绍" />
 
     <div v-else class="about-content">
       <div class="about-body" v-html="renderedContent"></div>
@@ -34,6 +32,7 @@
 import { ref, computed, onMounted, inject } from 'vue'
 import axios from 'axios'
 import { marked } from 'marked'
+import EmptyState from '../components/EmptyState.vue'
 
 const toast = inject('toast', null)
 const aboutContent = ref('')
@@ -87,37 +86,37 @@ onMounted(() => {
 }
 
 .about-page h2 {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
+  font-weight: 700;
   margin-bottom: 2rem;
 }
 
 .about-card {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.dark .about-card {
-  background: #16213e;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .about-form textarea {
   width: 100%;
   padding: 0.8rem;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
   outline: none;
-  background: inherit;
-  color: inherit;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast);
 }
 
 .about-form textarea:focus {
-  border-color: #667eea;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .form-actions {
@@ -127,90 +126,68 @@ onMounted(() => {
   margin-top: 1rem;
 }
 
-.hint {
-  color: #999;
-  font-size: 0.85rem;
-}
+.hint { color: var(--text-tertiary); font-size: 0.85rem; }
 
 .form-actions button {
   padding: 0.6rem 2rem;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.95rem;
-  transition: opacity 0.3s;
+  font-weight: 600;
+  font-family: inherit;
+  transition: all var(--transition);
 }
 
-.form-actions button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.form-actions button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
+.form-actions button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-.loading {
-  text-align: center;
-  padding: 3rem;
-}
+.loading { text-align: center; padding: 3rem; }
 
 .spinner {
   width: 40px; height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin: 0 auto;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.empty {
-  text-align: center;
-  padding: 3rem;
-  color: #888;
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .about-content {
-  background: white;
-  border-radius: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   padding: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.dark .about-content {
-  background: #16213e;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .about-body {
-  line-height: 1.8;
-  color: #444;
-}
-
-.dark .about-body {
-  color: #ccc;
+  line-height: 1.9;
+  font-size: 1.02rem;
+  color: var(--text-primary);
 }
 
 .about-body :deep(h1), .about-body :deep(h2), .about-body :deep(h3) {
   margin: 1.5rem 0 0.8rem;
-  color: #333;
-}
-
-.dark .about-body :deep(h1), .dark .about-body :deep(h2), .dark .about-body :deep(h3) {
-  color: #e0e0e0;
+  color: var(--text-primary);
 }
 
 .about-body :deep(p) { margin-bottom: 1rem; }
 
-.about-footer {
-  text-align: center;
-  margin-top: 2rem;
-}
+.about-footer { text-align: center; margin-top: 2rem; }
 
 .login-link {
-  color: #667eea;
+  color: var(--primary);
   text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
 }
+.login-link:hover { color: var(--accent); }
 </style>

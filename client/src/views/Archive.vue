@@ -7,9 +7,7 @@
       <div class="spinner"></div>
     </div>
 
-    <div v-else-if="Object.keys(archive).length === 0" class="empty">
-      <p>暂无文章</p>
-    </div>
+    <EmptyState v-else-if="Object.keys(archive).length === 0" icon="📅" title="暂无文章" description="还没有发布过文章" />
 
     <div v-else class="timeline">
       <div v-for="(articles, month) in archive" :key="month" class="timeline-group">
@@ -35,6 +33,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import EmptyState from '../components/EmptyState.vue'
 
 const archive = ref({})
 const loading = ref(true)
@@ -62,123 +61,108 @@ onMounted(async () => {
 .archive-page {
   max-width: 800px;
   margin: 0 auto;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
 }
 
 .archive-page h2 {
-  font-size: 1.8rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
 }
 
 .subtitle {
-  color: #888;
+  color: var(--text-tertiary);
   margin-bottom: 2rem;
+  font-size: 0.9rem;
 }
 
-.loading {
-  text-align: center;
-  padding: 3rem;
-}
+.loading { text-align: center; padding: 3rem; }
 
 .spinner {
   width: 40px; height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
   margin: 0 auto;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.empty {
-  text-align: center;
-  padding: 3rem;
-  color: #888;
-}
-
-.timeline-group {
-  margin-bottom: 2rem;
-}
+.timeline-group { margin-bottom: 2rem; }
 
 .timeline-month {
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary);
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #667eea;
+  border-bottom: 2px solid var(--primary);
 }
 
 .timeline-items {
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
-  border-left: 3px solid #e0e0e0;
+  gap: 0.6rem;
+  border-left: 3px solid var(--border);
   padding-left: 1.5rem;
 }
 
 .timeline-item {
-  background: white;
-  border-radius: 10px;
+  background: var(--bg-card-hover);
+  border-radius: var(--radius-sm);
   padding: 1rem 1.2rem;
   cursor: pointer;
   position: relative;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  transition: all 0.3s;
+  border: 1px solid var(--border-light);
+  transition: all var(--transition);
 }
 
 .timeline-item:hover {
   transform: translateX(5px);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.dark .timeline-item {
-  background: #16213e;
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
 }
 
 .timeline-dot {
   position: absolute;
-  left: -1.75rem;
-  top: 1.3rem;
+  left: -1.78rem;
+  top: 1.35rem;
   width: 10px;
   height: 10px;
-  background: #667eea;
+  background: var(--primary);
   border-radius: 50%;
-  border: 2px solid white;
-}
-
-.dark .timeline-dot {
-  border-color: #1a1a2e;
+  border: 2px solid var(--bg-card);
 }
 
 .timeline-content h4 {
   font-size: 1rem;
   margin-bottom: 0.3rem;
+  font-weight: 600;
 }
 
 .timeline-meta {
   display: flex;
   gap: 1rem;
   font-size: 0.8rem;
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .timeline-date {
-  color: #667eea;
+  color: var(--primary);
   font-size: 0.8rem;
   font-weight: 600;
 }
 
 .cat {
-  background: #e8ecff;
-  color: #667eea;
+  background: var(--bg-tag);
+  color: var(--primary);
   padding: 0.1rem 0.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-full);
   font-size: 0.75rem;
 }
-
-.dark .cat { background: #1a1a4e; }
 </style>

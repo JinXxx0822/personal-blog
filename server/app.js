@@ -5,6 +5,7 @@ const commentsRouter = require('./routes/comments');
 const usersRouter = require('./routes/users');
 const linksRouter = require('./routes/links');
 const aboutRouter = require('./routes/about');
+const announcementsRouter = require('./routes/announcements');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use('/api/comments', commentsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/links', linksRouter);
 app.use('/api/about', aboutRouter);
+app.use('/api/announcements', announcementsRouter);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
@@ -36,7 +38,7 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`博客系统后端已启动: http://localhost:${PORT}`);
-  console.log('支持功能: 文章CRUD | 分类标签 | 搜索分页 | 评论 | 用户认证 | 点赞收藏 | 标签云 | 归档 | 友链 | 关于');
+  console.log('支持功能: 文章CRUD | 分类标签 | 搜索分页 | 评论回复 | 用户认证 | 点赞收藏 | 标签云 | 归档 | 友链 | 关于 | 公告');
 });
 
 module.exports = app;
