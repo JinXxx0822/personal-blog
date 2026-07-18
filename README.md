@@ -9,7 +9,7 @@
 
 一个功能完整、界面精美的前后端分离个人博客系统，使用 AI 辅助开发。
 
-**在线演示**：*部署后添加 URL 链接*
+**在线演示**：[EdgeOne Pages 部署中] — 本地启动访问 `http://localhost:5173`
 
 ---
 
@@ -240,17 +240,32 @@ POST /api/comments
 | 要求 | 实现 |
 |------|------|
 | 3 个以上独立路由 | ✅ 8 个路由页面 |
-| 3 个以上后台接口 | ✅ 26+ API 接口 |
+| 3 个以上后台接口 | ✅ 30+ API 接口 |
 | 前端 + 后端 + 数据库 | ✅ Vue 3 + Express + SQLite |
-| 部署上线（URL 访问） | ✅ 待部署 |
+| 部署上线（URL 访问） | ✅ EdgeOne Pages（进行中） |
 | 功能完整度 50% | ✅ 文章 CRUD + 评论 + 点赞 + 收藏 + 搜索 + 分类 |
-| 工程规范/代码质量 25% | ✅ 模块化 + CSS 变量 + 组件复用 + 路由守卫 |
-| AI 工具使用 20% | ✅ AI 辅助编码、代码审查 |
+| 工程规范/代码质量 25% | ✅ 模块化 + CSS 变量 + 组件复用 + 路由守卫 + Git 多日提交 |
+| AI 工具使用 20% | ✅ AI 辅助编码 + 代码审查 + Prompt 日志 |
 | README 文档 | ✅ 完整接口文档 + 项目介绍 + 启动指南 |
 | UI 体验/界面美观 | ✅ 现代设计 + 暗色模式 + 动画过渡 + 响应式 |
+| 代码审查报告 | ✅ [CODE_REVIEW.md](./CODE_REVIEW.md) |
+| Prompt 日志 | ✅ [prompt_log.md](./prompt_log.md) |
+| 个人总结报告 | ✅ [SUMMARY.md](./SUMMARY.md) |
 
 ---
 
 ## 📝 License
 
 MIT
+
+---
+
+## 📚 提交物清单
+
+| 文档 | 说明 |
+|------|------|
+| [README.md](./README.md) | 项目介绍/技术栈/安装运行指南 |
+| [API_DOCS.md](./API_DOCS.md) | 完整接口文档 (30+ API) |
+| [prompt_log.md](./prompt_log.md) | AI 使用过程记录与 Prompt 日志 |
+| [CODE_REVIEW.md](./CODE_REVIEW.md) | AI Code Review 报告 |
+| [SUMMARY.md](./SUMMARY.md) | 个人实训总结报告 (750字) |
