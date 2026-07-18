@@ -19,6 +19,8 @@
 | 后端 API（CloudBase） | https://blog-server-283966-10-1455512667.sh.run.tcloudbase.com/api |
 | 前端页面（EdgeOne 备用） | https://personal-dpkrx3sdot8v.edgeone.dev |
 | 后端 API（本地） | http://localhost:3000/api |
+| 演示录屏（GitHub Release） | https://github.com/JinXxx0822/personal-blog/releases/tag/v1.0-demo |
+
 
 > **部署平台**：腾讯云 CloudBase（前端静态托管 + 后端云托管容器）
 > 
@@ -296,3 +298,4 @@ MIT
 | [prompt_log.md](./prompt_log.md) | AI 使用过程记录与 Prompt 日志 |
 | [CODE_REVIEW.md](./CODE_REVIEW.md) | AI Code Review 报告 |
 | [SUMMARY.md](./SUMMARY.md) | 个人实训总结报告 (750字) |
+| [演示录屏](https://github.com/JinXxx0822/personal-blog/releases/tag/v1.0-demo) | 项目功能演示视频（GitHub Release） |
