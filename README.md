@@ -40,7 +40,9 @@
 - 🌙 **暗色模式** — 一键切换，自动记忆
 - 📢 **公告系统** — 网站全局公告栏
 - 📊 **数据统计** — 文章/分类/阅读/评论统计
-- 👤 **用户认证** — 注册/登录，路由守卫 + 登录重定向
+- 👤 **用户认证** — 注册/登录，JWT Token 认证 + 路由守卫 + 登录重定向
+- 🔐 **API 安全** — JWT 中间件保护写操作，Axios 拦截器自动附加 Token
+- 📦 **共享状态** — 全局用户 Store，统一跨组件状态管理
 - 📄 **SEO 优化** — 动态标题 + Meta 标签
 
 ## 🏗️ 技术架构
@@ -50,11 +52,12 @@
 | 前端框架 | Vue 3 (Composition API) | 响应式 UI + 路由管理 |
 | 构建工具 | Vite 5 | 极速开发与构建 |
 | 路由 | Vue Router 4 | 8 个独立路由 + 导航守卫 |
-| HTTP | Axios | API 请求与拦截 |
+| HTTP | Axios (拦截器) | API 请求 + 自动 Token 附加 + 401 跳转 |
 | Markdown | marked + highlight.js | 富文本渲染与代码高亮 |
+| 状态管理 | 共享 Store (Composition API) | 全局用户状态，跨组件共享 |
 | 后端框架 | Express.js 4 | RESTful API 服务 |
 | 数据库 | better-sqlite3 | 轻量级本地数据库 |
-| 认证 | bcrypt | 密码加密存储 |
+| 认证 | bcrypt + JWT | 密码哈希 + Token 签发与验证 |
 | 消息通知 | Toast 插件 | 全局操作反馈 |
 
 ## 📂 项目结构
@@ -75,9 +78,12 @@ personal/
 │   │   ├── components/
 │   │   │   ├── Toast.vue          # 全局通知组件
 │   │   │   └── EmptyState.vue     # 空状态展示组件
+│   │   ├── stores/
+│   │   │   └── user.js            # 共享用户状态 Store（全局登录态）
 │   │   ├── utils/
 │   │   │   └── toast.js           # Toast 插件
 │   │   ├── router/index.js        # 路由配置 + 守卫
+│   │   ├── api.js                 # Axios 封装（拦截器/环境切换）
 │   │   ├── App.vue                # 根组件（导航/页脚/主题/公告）
 │   │   └── main.js                # 入口
 │   ├── index.html                 # HTML 入口（SEO Meta）
@@ -87,10 +93,12 @@ personal/
 │   ├── routes/
 │   │   ├── articles.js            # 文章 API（CRUD/搜索/分类/标签/统计）
 │   │   ├── comments.js            # 评论 API（嵌套回复/级联删除）
-│   │   ├── users.js               # 用户 API（注册/登录/bcrypt）
+│   │   ├── users.js               # 用户 API（注册/登录/bcrypt+JWT）
 │   │   ├── links.js               # 友链 API
 │   │   ├── about.js               # 关于 API
 │   │   └── announcements.js       # 公告 API
+│   ├── middleware/
+│   │   └── auth.js                # JWT 认证中间件（Token 签发/验证）
 │   ├── database.js                # 数据库初始化 + 自动迁移
 │   ├── app.js                     # Express 入口 + 中间件
 │   └── package.json
@@ -165,7 +173,7 @@ node seed.js
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | `POST` | `/api/users/register` | 注册（`username, password, nickname`） |
-| `POST` | `/api/users/login` | 登录（返回用户信息） |
+| `POST` | `/api/users/login` | 登录（返回用户信息 + JWT Token） |
 
 ### 其他接口
 
@@ -255,11 +263,13 @@ npm run dev
 
 - ✅ 表单校验：标题/正文非空，标题 100 字限制，正文最少 10 字
 - ✅ 密码加密：bcrypt 哈希存储
+- ✅ JWT 认证：后端中间件保护写操作，Axios 拦截器自动附加 Token
 - ✅ 路由守卫：未登录拦截 + 登录后自动跳回
+- ✅ 共享 Store：全局用户状态，所有组件统一登录态
 - ✅ 点赞去重：同一用户对同一文章只能点赞一次
 - ✅ 空状态处理：所有列表页面统一空状态展示
 - ✅ 加载态：骨架屏 + Spinner 双重加载反馈
-- ✅ 错误处理：全局 Toast 反馈 + 后端异常捕获
+- ✅ 错误处理：全局 Toast 反馈 + 后端异常捕获 + 401 自动跳登录
 - ✅ 响应式：全平台适配（桌面/平板/手机）
 
 ---

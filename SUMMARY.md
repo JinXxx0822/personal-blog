@@ -27,13 +27,14 @@
 | 前端框架 | Vue 3 (Composition API) | 响应式 UI + 组件化开发 |
 | 构建工具 | Vite 5 | 极速开发与构建 |
 | 路由 | Vue Router 4 | 8 个独立路由 + 导航守卫 |
-| HTTP 客户端 | Axios | 统一封装，自动切换本地/云端地址 |
+| HTTP 客户端 | Axios（拦截器） | 统一封装，自动附加 Token，自动切换环境 |
+| 状态管理 | 共享 Store | Composition API 全局用户状态，跨组件共享 |
 | Markdown | marked + highlight.js | 富文本渲染与代码高亮 |
 | 后端框架 | Express.js 4 | RESTful API 服务 |
 | 数据库 | better-sqlite3 | 轻量级嵌入式数据库 |
-| 认证 | bcryptjs | 密码哈希存储 |
+| 认证 | bcryptjs + JWT (jsonwebtoken) | 密码哈希存储 + Token 认证中间件 |
 | 部署 | CloudBase + CloudRun | 静态托管 + 容器化后端 |
-| 版本管理 | Git + GitHub | 13 次有意义提交 |
+| 版本管理 | Git + GitHub | 14 次有意义提交 |
 
 ---
 
@@ -73,6 +74,16 @@
 - **最终方案**：CloudBase 静态网站托管 + CloudRun 容器部署
 - 编写 Dockerfile + seed-db.js 自动种子脚本
 - 修改前端 api.js 实现本地/云端自动切换
+
+### 阶段七：安全加固与代码审查修复（提交 14）
+- 引入 **JWT（jsonwebtoken）** 认证中间件，保护所有写操作 API
+- 创建 **共享用户 Store**（`stores/user.js`），统一全局登录态管理
+- 添加 **Axios 请求/响应拦截器**：自动附加 Bearer Token，401 自动跳转登录页
+- 修复 **6 个视图文件**统一使用共享 Store，消除冗余 `localStorage` 读取
+- 修复 **回复评论 Toast 提示 bug**：回复评论时错误提示"评论发布成功"
+- 修复 **特殊路由请求挂起**：`return;` → `res.status(404).json(...)`
+- 修复 **seed-db.js 竞态条件**：异步 setTimeout → 同步回调链
+- 补充文章创建 `is_pinned` 字段
 
 ---
 
@@ -125,11 +136,11 @@
 
 | 模块 | 工作内容 |
 |------|---------|
-| **前端** | 8 个 Vue 3 页面组件、CSS 变量设计系统、深色模式、路由守卫、Toast 插件、EmptyState 组件、响应式布局 |
-| **后端** | Express 路由设计（6 个路由模块）、SQLite 数据库设计与迁移、bcrypt 密码加密、评论嵌套树构建、点赞去重 |
-| **工程化** | 13 次 Git 提交管理、完整项目文档（README/API/审查/总结/Prompt 日志） |
+| **前端** | 8 个 Vue 3 页面组件、CSS 变量设计系统、深色模式、路由守卫、共享 Store、Toast 插件、EmptyState 组件、响应式布局 |
+| **后端** | Express 路由设计（6 个路由模块）、JWT 认证中间件、SQLite 数据库设计与迁移、bcrypt 密码加密、评论嵌套树构建、点赞去重 |
+| **工程化** | 14 次 Git 提交管理、完整项目文档（README/API/审查/总结/Prompt 日志） |
 | **部署** | EdgeOne Pages 调试（5 次尝试）、CloudBase 静态托管部署、CloudRun Docker 容器化部署、图片压缩优化 |
-| **API** | 前端 api.js 封装（自动切换环境）、后端 30+ RESTful 接口 |
+| **API** | 前端 Axios 封装（拦截器/环境切换）、后端 30+ RESTful 接口 |
 
 ---
 
@@ -138,10 +149,12 @@
 1. **CSS 变量设计系统**：20+ 变量定义在 `:root`，一键切换深色模式，全局风格统一
 2. **评论嵌套树结构**：内存构建嵌套树，时间复杂度 O(n)，支持无限层级回复
 3. **数据库自动迁移**：增量迁移 + 错误容忍，兼容旧数据
-4. **自动密码升级**：旧明文密码验证通过后自动升级为 bcrypt
-5. **路由守卫 + 登录重定向**：未登录自动跳转登录页，登录后回到目标页
-6. **Toast 插件化**：provider/inject 模式全局可用，统一操作反馈
-7. **容器化部署**：Dockerfile + 自动种子，实现一键云端部署
+4. **JWT Token 认证**：中间件保护写操作，拦截器自动附加 Token + 401 处理
+5. **共享用户 Store**：Composition API 全局状态，消除冗余 localStorage 读取
+6. **自动密码升级**：旧明文密码验证通过后自动升级为 bcrypt
+7. **路由守卫 + 登录重定向**：未登录自动跳转登录页，登录后回到目标页
+8. **Toast 插件化**：provider/inject 模式全局可用，统一操作反馈
+9. **容器化部署**：Dockerfile + 自动种子，实现一键云端部署
 
 ---
 
@@ -154,7 +167,7 @@
 - **AI 协作技巧**：学会了如何写高质量的 Prompt，以及如何审查 AI 生成的代码
 
 未来可以继续优化的方向：
-- 引入 JWT Token 认证机制
+- ✅ ~~引入 JWT Token 认证机制~~（已完成）
 - 添加单元测试和 E2E 测试
 - 配置 CI/CD 自动部署流水线
 - 接入 CDN 加速静态资源
@@ -162,4 +175,4 @@
 
 ---
 
-> 字数统计：约 2200 字 | 项目版本：v2.0（CloudBase 全功能部署）
+> 字数统计：约 2500 字 | 项目版本：v3.0（JWT 认证 + 安全加固）

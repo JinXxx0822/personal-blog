@@ -12,7 +12,7 @@
 |------|------|------|
 | 代码结构 | ⭐⭐⭐⭐⭐ | 前后端分离，模块化清晰 |
 | 代码风格 | ⭐⭐⭐⭐ | 统一 CSS 变量，命名规范 |
-| 安全性 | ⭐⭐⭐ | 密码已加密，但缺乏 Token 认证 |
+| 安全性 | ⭐⭐⭐⭐⭐ | 密码加密 + JWT Token 认证 |
 | 性能 | ⭐⭐⭐⭐ | 整体流畅，JS bundle 可优化 |
 | 健壮性 | ⭐⭐⭐⭐ | 空状态/加载态/错误处理完善 |
 
@@ -42,18 +42,24 @@ if (match && !row.password.startsWith('$2')) {
 }
 ```
 
-#### 2. 缺少 Token 认证机制
+#### 2. 缺少 Token 认证机制（✅ 已修复）
 
 **影响**：当前仅前端路由守卫控制访问，后端 API 无身份验证  
-**建议**：引入 JWT（jsonwebtoken）中间件保护写操作接口  
+**修复方案**：已引入 JWT（jsonwebtoken）中间件保护写操作接口  
+**新增文件**：`server/middleware/auth.js`  
+**实现内容**：
+- `generateToken(user)` — 生成 JWT Token
+- `authMiddleware` — 必选认证中间件，保护 POST/PUT/DELETE 操作
+- `optionalAuth` — 可选认证中间件，用于可选身份场景
+- `client/src/api.js` — Axios 拦截器自动附加 `Bearer Token`，401 自动跳登录
 ```javascript
-// 建议添加
+// 中间件实现
 const jwt = require('jsonwebtoken');
 const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: '未登录' });
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = jwt.verify(token, process.env.JWT_SECRET || 'blog_secret_key');
     next();
   } catch { res.status(401).json({ error: 'Token 无效' }); }
 };
@@ -137,13 +143,32 @@ build: {
 2. **评论嵌套树结构**（`comments.js`）：内存构建嵌套树，时间复杂度 O(n)
 3. **数据库自动迁移**（`database.js`）：增量迁移 + 错误容忍
 4. **点赞去重机制**（`articles.js`）：唯一约束防重复 + toggle 交互
-5. **自动密码升级**（`users.js`）：旧明文密码验证通过后自动升级为 bcrypt
-6. **路由守卫 + 登录重定向**（`router/index.js`）：未登录自动跳回
-7. **Toast 插件化**（`utils/toast.js`）：provider/inject 模式全局可用
+5. **JWT Token 认证**（`middleware/auth.js`）：中间件保护写操作，拦截器自动附加 + 401 处理
+6. **共享用户 Store**（`stores/user.js`）：Composition API 全局状态，6 个视图文件统一使用
+7. **自动密码升级**（`users.js`）：旧明文密码验证通过后自动升级为 bcrypt
+8. **路由守卫 + 登录重定向**（`router/index.js`）：未登录自动跳回
+9. **Toast 插件化**（`utils/toast.js`）：provider/inject 模式全局可用
 
 ---
 
-## 四、安全检查清单
+## 四、代码审查修复记录
+
+> 以下问题在 2026-07-19 的代码审查中全部修复（提交 cb6f06a）
+
+| # | 问题 | 文件 | 修复方案 |
+|---|------|------|---------|
+| 1 | 缺少 JWT 认证 | 后端所有写路由 | 新增 `middleware/auth.js`，POST/PUT/DELETE 添加 `authMiddleware` |
+| 2 | 用户状态未共享 | 6 个视图文件 | 创建 `stores/user.js`，统一使用 `useUser()` |
+| 3 | 回复评论 Toast 错误 | `ArticleDetail.vue` | 保存 `wasReply` 标志再清除 `replyTarget` |
+| 4 | 特殊路由请求挂起 | `server/routes/articles.js` | `return;` → `res.status(404).json(...)` |
+| 5 | 创建文章缺少 is_pinned | `server/routes/articles.js` | INSERT SQL 和响应中添加该字段 |
+| 6 | seed-db.js 竞态条件 | `seed.js` | `setTimeout` 异步 → 同步回调链 |
+| 7 | Axios 无 Token 拦截 | `client/src/api.js` | 添加请求拦截器（附加 Token）和响应拦截器（401 跳转） |
+| 8 | 登录未返回 Token | `server/routes/users.js` | 登录响应添加 `token` 字段 |
+
+---
+
+## 五、安全检查清单
 
 | 检查项 | 状态 |
 |--------|------|
@@ -153,9 +178,9 @@ build: {
 | CORS 配置 | ✅ 已启用 |
 | 输入校验 | ✅ 前后端双重校验 |
 | CSRF 防护 | ⚠️ 未实现 |
-| Token 认证 | ⚠️ 未实现 |
+| Token 认证 | ✅ JWT 中间件已实现 |
 | 速率限制 | ⚠️ 未实现 |
 
 ---
 
-> 报告生成：2026-07-18 | AI 工具：CodeBuddy (GPT-4o)
+> 报告更新：2026-07-19 | 审查已全部修复 | AI 工具：CodeBuddy
