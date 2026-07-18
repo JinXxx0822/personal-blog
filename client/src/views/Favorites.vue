@@ -32,7 +32,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import EmptyState from '../components/EmptyState.vue'
 
 const favorites = ref([])
@@ -41,7 +41,7 @@ const user = ref(null)
 
 const fetchFavorites = async () => {
   try {
-    const res = await axios.get(`/api/articles/favorites/user/${user.value.id}`)
+    const res = await api.get(`/api/articles/favorites/user/${user.value.id}`)
     favorites.value = res.data
   } catch (e) { console.error(e) }
   finally { loading.value = false }

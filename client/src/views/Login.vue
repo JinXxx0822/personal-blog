@@ -38,7 +38,7 @@
 <script setup>
 import { ref, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 
 const router = useRouter()
 const route = useRoute()
@@ -74,7 +74,7 @@ const handleSubmit = async () => {
       payload.nickname = form.value.nickname.trim()
     }
 
-    const response = await axios.post(endpoint, payload)
+    const response = await api.post(endpoint, payload)
     const user = {
       id: response.data.id,
       username: response.data.username,

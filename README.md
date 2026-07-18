@@ -15,13 +15,14 @@
 
 | 服务 | 地址 |
 |------|------|
-| 前端页面（CloudBase） | https://personal-personal-blog-d1gbix7hwd3a696bd.webapps.tcloudbase.com |
+| 前端页面（CloudBase） | https://personal-blog-d1gbix7kwd3a696bd-1455512667.tcloudbaseapp.com |
+| 后端 API（CloudBase） | https://blog-server-283966-10-1455512667.sh.run.tcloudbase.com/api |
 | 前端页面（EdgeOne 备用） | https://personal-dpkrx3sdot8v.edgeone.dev |
-| 后端 API | http://localhost:3000/api （本地运行） |
+| 后端 API（本地） | http://localhost:3000/api |
 
-> **部署平台**：腾讯云 CloudBase 静态网站托管
+> **部署平台**：腾讯云 CloudBase（前端静态托管 + 后端云托管容器）
 > 
-> 说明：后端服务当前为本地运行，演示时请使用 `npm run dev` 启动；前端页面已部署到 CloudBase，可直接访问。考核兜底方式见下方「部署上线」。
+> 后端已通过 CloudRun 容器模式部署，使用 SQLite + 自动种子数据。首次构建需要约 10-15 分钟。本地演示也可使用 `npm run dev`。
 
 ---
 

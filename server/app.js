@@ -70,9 +70,16 @@ app.use((err, req, res, next) => {
   });
 });
 
+// 自动种子数据库
+const seedDatabase = require('./seed-db');
+const dbPath = path.join(__dirname, 'blog.db');
+
 app.listen(PORT, () => {
   console.log(`博客系统后端已启动: http://localhost:${PORT}`);
   console.log('支持功能: 文章CRUD | 分类标签 | 搜索分页 | 评论回复 | 用户认证 | 点赞收藏 | 标签云 | 归档 | 友链 | 关于 | 公告');
+  
+  // 启动后自动检查并填充种子数据
+  seedDatabase(dbPath);
 });
 
 module.exports = app;

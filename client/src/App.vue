@@ -90,7 +90,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from './api'
 import Toast from './components/Toast.vue'
 
 const router = useRouter()
@@ -132,7 +132,7 @@ const dismissAnnouncement = () => {
 
 const fetchAnnouncement = async () => {
   try {
-    const res = await axios.get('/api/announcements')
+    const res = await api.get('/api/announcements')
     if (res.data) {
       const dismissedId = localStorage.getItem('dismissedAnnouncement')
       if (dismissedId !== res.data.id) {

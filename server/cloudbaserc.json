@@ -1,0 +1,6 @@
+{
+  "envId": "personal-blog-d1gbix7kwd3a696bd",
+  "cloudrun": {
+    "name": "blog-server"
+  }
+}

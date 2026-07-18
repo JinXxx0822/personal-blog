@@ -34,7 +34,7 @@
 
 <script setup>
 import { ref, onMounted, inject } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import EmptyState from '../components/EmptyState.vue'
 
 const toast = inject('toast', null)
@@ -48,7 +48,7 @@ const adding = ref(false)
 
 const fetchLinks = async () => {
   try {
-    const res = await axios.get('/api/links')
+    const res = await api.get('/api/links')
     links.value = res.data
   } catch (e) { console.error(e) }
   finally { loading.value = false }
@@ -62,7 +62,7 @@ const addLink = async () => {
   }
   adding.value = true
   try {
-    await axios.post('/api/links', {
+    await api.post('/api/links', {
       name: newName.value,
       url: newUrl.value,
       description: newDesc.value
@@ -83,7 +83,7 @@ const addLink = async () => {
 const deleteLink = async (id) => {
   if (!confirm('确定删除此友链？')) return
   try {
-    await axios.delete(`/api/links/${id}`)
+    await api.delete(`/api/links/${id}`)
     await fetchLinks()
   } catch (e) {
     if (toast) toast.error('删除失败')

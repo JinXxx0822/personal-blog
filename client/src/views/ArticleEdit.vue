@@ -159,7 +159,7 @@ console.log('Hello World')
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -201,7 +201,7 @@ const fetchArticle = async () => {
   if (!route.params.id) return
   isEdit.value = true
   try {
-    const res = await axios.get(`/api/articles/${route.params.id}`)
+    const res = await api.get(`/api/articles/${route.params.id}`)
     const article = res.data
     form.value = {
       title: article.title || '',
@@ -243,10 +243,10 @@ const saveArticle = async () => {
     }
 
     if (isEdit.value) {
-      await axios.put(`/api/articles/${route.params.id}`, payload)
+      await api.put(`/api/articles/${route.params.id}`, payload)
       toast?.success('文章更新成功！')
     } else {
-      await axios.post('/api/articles', payload)
+      await api.post('/api/articles', payload)
       toast?.success('文章发布成功！')
     }
     router.push('/')

@@ -239,7 +239,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 import { inject } from 'vue'
 import EmptyState from '../components/EmptyState.vue'
 
@@ -315,21 +315,21 @@ const scrollToArticles = () => {
 
 const fetchStats = async () => {
   try {
-    const res = await axios.get('/api/articles/stats/overview')
+    const res = await api.get('/api/articles/stats/overview')
     stats.value = res.data
   } catch (e) { /* ignore */ }
 }
 
 const fetchHotArticles = async () => {
   try {
-    const res = await axios.get('/api/articles/hot/list')
+    const res = await api.get('/api/articles/hot/list')
     hotArticles.value = res.data
   } catch (e) { /* ignore */ }
 }
 
 const fetchTagCloud = async () => {
   try {
-    const res = await axios.get('/api/articles/tags/cloud')
+    const res = await api.get('/api/articles/tags/cloud')
     tagCloud.value = res.data.slice(0, 20)
   } catch (e) { /* ignore */ }
 }
@@ -340,7 +340,7 @@ const fetchArticles = async () => {
     const params = { page: page.value, pageSize: 6 }
     if (activeCategory.value !== '全部') params.category = activeCategory.value
     if (keyword.value.trim()) params.keyword = keyword.value.trim()
-    const response = await axios.get('/api/articles', { params })
+    const response = await api.get('/api/articles', { params })
     articles.value = response.data.articles
     total.value = response.data.total
     totalPages.value = response.data.totalPages
@@ -353,7 +353,7 @@ const fetchArticles = async () => {
 
 const fetchCategories = async () => {
   try {
-    const response = await axios.get('/api/articles/categories/all')
+    const response = await api.get('/api/articles/categories/all')
     categories.value = ['全部', ...response.data]
   } catch (e) { /* ignore */ }
 }

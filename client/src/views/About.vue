@@ -30,7 +30,7 @@
 
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import { marked } from 'marked'
 import EmptyState from '../components/EmptyState.vue'
 
@@ -47,7 +47,7 @@ const renderedContent = computed(() => {
 
 const fetchAbout = async () => {
   try {
-    const res = await axios.get('/api/about')
+    const res = await api.get('/api/about')
     aboutContent.value = res.data?.content || ''
     content.value = aboutContent.value
   } catch (e) {
@@ -60,7 +60,7 @@ const fetchAbout = async () => {
 const save = async () => {
   saving.value = true
   try {
-    await axios.post('/api/about', { content: content.value })
+    await api.post('/api/about', { content: content.value })
     aboutContent.value = content.value
     if (toast) toast.success('保存成功')
     else alert('保存成功')

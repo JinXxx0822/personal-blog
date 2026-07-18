@@ -245,7 +245,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
@@ -370,7 +370,7 @@ const toggleLike = async () => {
   if (!article.value) return
   try {
     const payload = user.value ? { user_id: user.value.id } : {}
-    const res = await axios.post(`/api/articles/${article.value.id}/like`, payload)
+    const res = await api.post(`/api/articles/${article.value.id}/like`, payload)
     if (res.data.action === 'liked') {
       article.value.likes = (article.value.likes || 0) + 1
       liked.value = true
@@ -393,11 +393,11 @@ const toggleFavorite = async () => {
   }
   try {
     if (favorited.value) {
-      await axios.delete(`/api/articles/${article.value.id}/favorite/${user.value.id}`)
+      await api.delete(`/api/articles/${article.value.id}/favorite/${user.value.id}`)
       favorited.value = false
       toast?.info('已取消收藏')
     } else {
-      await axios.post(`/api/articles/${article.value.id}/favorite`, { user_id: user.value.id })
+      await api.post(`/api/articles/${article.value.id}/favorite`, { user_id: user.value.id })
       favorited.value = true
       toast?.success('收藏成功')
     }
@@ -429,7 +429,7 @@ const cancelReply = () => {
 // 数据请求
 const fetchArticle = async () => {
   try {
-    const res = await axios.get(`/api/articles/${route.params.id}`)
+    const res = await api.get(`/api/articles/${route.params.id}`)
     article.value = res.data
     await nextTick()
     extractToc()
@@ -443,21 +443,21 @@ const fetchArticle = async () => {
 
 const fetchComments = async () => {
   try {
-    const res = await axios.get(`/api/comments/${route.params.id}`)
+    const res = await api.get(`/api/comments/${route.params.id}`)
     comments.value = res.data
   } catch (e) { /* ignore */ }
 }
 
 const fetchRelatedArticles = async () => {
   try {
-    const res = await axios.get(`/api/articles/related/${route.params.id}`)
+    const res = await api.get(`/api/articles/related/${route.params.id}`)
     relatedArticles.value = res.data
   } catch (e) { /* ignore */ }
 }
 
 const fetchNavArticles = async () => {
   try {
-    const res = await axios.get(`/api/articles/${route.params.id}/nav`)
+    const res = await api.get(`/api/articles/${route.params.id}/nav`)
     prevArticle.value = res.data.prev
     nextArticle.value = res.data.next
   } catch (e) { /* ignore */ }
@@ -466,7 +466,7 @@ const fetchNavArticles = async () => {
 const checkFavorite = async () => {
   if (!user.value) return
   try {
-    const res = await axios.get(`/api/articles/${route.params.id}/favorite/${user.value.id}`)
+    const res = await api.get(`/api/articles/${route.params.id}/favorite/${user.value.id}`)
     favorited.value = res.data.favorited
   } catch (e) { /* ignore */ }
 }
@@ -474,7 +474,7 @@ const checkFavorite = async () => {
 const checkLikeStatus = async () => {
   if (!user.value) return
   try {
-    const res = await axios.get(`/api/articles/${route.params.id}/like/${user.value.id}`)
+    const res = await api.get(`/api/articles/${route.params.id}/like/${user.value.id}`)
     liked.value = res.data.liked
   } catch (e) { /* ignore */ }
 }
@@ -484,7 +484,7 @@ const submitComment = async () => {
   if (!newComment.value.trim()) return
   submitting.value = true
   try {
-    await axios.post('/api/comments', {
+    await api.post('/api/comments', {
       article_id: route.params.id,
       author: user.value?.nickname || '匿名',
       content: newComment.value.trim(),
@@ -505,7 +505,7 @@ const submitComment = async () => {
 const deleteComment = async (commentId) => {
   if (!confirm('确定要删除这条评论吗？')) return
   try {
-    await axios.delete(`/api/comments/${commentId}`)
+    await api.delete(`/api/comments/${commentId}`)
     await fetchComments()
     toast?.success('评论已删除')
   } catch (e) {
@@ -517,7 +517,7 @@ const deleteComment = async (commentId) => {
 const deleteArticle = async () => {
   if (!confirm('确定要删除这篇文章吗？此操作不可恢复。')) return
   try {
-    await axios.delete(`/api/articles/${route.params.id}`)
+    await api.delete(`/api/articles/${route.params.id}`)
     toast?.success('文章已删除')
     router.push('/')
   } catch (e) {

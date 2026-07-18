@@ -32,7 +32,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../api'
 import EmptyState from '../components/EmptyState.vue'
 
 const archive = ref({})
@@ -46,7 +46,7 @@ const formatDay = (dateStr) => {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/articles/archive/list')
+    const res = await api.get('/api/articles/archive/list')
     archive.value = res.data
     Object.values(res.data).forEach(arr => totalCount.value += arr.length)
   } catch (e) {
