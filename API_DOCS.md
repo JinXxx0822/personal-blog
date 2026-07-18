@@ -306,11 +306,36 @@ POST /api/users/login
   "id": "user-xxx",
   "username": "admin",
   "nickname": "管理员",
+  "token": "eyJhbGciOiJIUzI1NiIs...",
   "message": "登录成功"
 }
 ```
 
-**说明**：密码使用 bcrypt 哈希存储，兼容旧明文密码自动升级。
+**说明**：密码使用 bcrypt 哈希存储，兼容旧明文密码自动升级。  
+**认证**：登录成功返回 JWT Token，后续请求需在 Header 中携带 `Authorization: Bearer <token>`。
+
+### 3.3 JWT 认证说明
+
+所有写操作接口（POST/PUT/DELETE）均需要 JWT Token 认证。
+
+**请求头格式**：
+```
+Authorization: Bearer <token>
+```
+
+**保护接口**：
+| 操作 | 保护范围 |
+|------|---------|
+| 创建/编辑/删除文章 | `/api/articles` POST/PUT/DELETE |
+| 发布/删除评论 | `/api/comments` POST/DELETE |
+| 友链管理 | `/api/links` POST/PUT/DELETE |
+| 关于页编辑 | `/api/about` PUT |
+| 公告管理 | `/api/announcements` POST/PUT/DELETE |
+
+**未认证响应 (401)**：
+```json
+{ "error": "未登录" }
+```
 
 ---
 

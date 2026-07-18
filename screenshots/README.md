@@ -1,6 +1,6 @@
 # 📸 项目截图包
 
-## (3) 数据库、接口、AI Code Review 截图
+> 包含：数据库结构文档 + API 接口响应 JSON + AI Code Review 记录 + 前端页面截图
 
 ---
 
@@ -193,38 +193,28 @@ API: `GET /api/stats/overview`
 
 ## 四、AI Code Review 关键发现
 
-> 详见 `CODE_REVIEW.md`
+> 详见项目根目录 `CODE_REVIEW.md`
 
-### 发现问题清单
+### 修复清单（共 8 项，全部已修复）
 
 | 等级 | 问题 | 位置 | 状态 |
 |------|------|------|:--:|
-| 🔴 严重 | 路由参数 id 与关键字冲突 | articles.js | ✅ 已修复 |
-| 🟡 警告 | 评论树构建缺少排序 | articles.js | ✅ 已修复 |
-| 🟡 警告 | 输入验证不足 | 多个路由 | ⚠️ 建议加固 |
-| 🔵 建议 | 添加请求频率限制 | app.js | 📋 计划中 |
-| 🔵 建议 | 图片上传大小限制 | app.js | 📋 计划中 |
+| 🔴 严重 | 路由 `return;` 导致请求挂起 | `articles.js` | ✅ 已修复 |
+| 🔴 严重 | seed-db.js 竞态条件 | `seed.js` | ✅ 已修复 |
+| 🔴 严重 | 缺少 JWT 认证中间件 | 所有写路由 | ✅ 已修复 |
+| 🟡 警告 | 用户状态未全局共享 | 6 个视图文件 | ✅ 已修复 |
+| 🟡 警告 | 回复评论 Toast 提示错误 | `ArticleDetail.vue` | ✅ 已修复 |
+| 🟡 警告 | 创建文章缺少 is_pinned | `articles.js` | ✅ 已修复 |
+| 🟡 警告 | Axios 无 Token 自动附加 | `api.js` | ✅ 已修复 |
+| 🟡 警告 | 登录接口未返回 Token | `users.js` | ✅ 已修复 |
 
-### 主要修复
+### 新增文件
 
-**1. 路由关键字冲突（严重）**
-
-```javascript
-// ❌ 问题代码
-if (['categories', 'hot'].includes(id)) { ... }
-
-// ✅ 修复后
-const keywordRoutes = ['categories', 'hot', 'search', 'archive', 'tags'];
-if (keywordRoutes.includes(id)) { ... }
-router.get('/:id', ...);
-```
-
-**2. 评论树排序缺失**
-
-```javascript
-// ✅ 修复：按时间排序
-children.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-```
+| 文件 | 说明 |
+|------|------|
+| `server/middleware/auth.js` | JWT Token 签发 + 认证中间件 |
+| `client/src/stores/user.js` | 全局共享用户状态 Store |
+| `client/src/api.js` | Axios 拦截器（Token 附加 + 401 跳转）|
 
 ---
 
@@ -260,15 +250,30 @@ children.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
 ## 六、完整 API 响应 JSON 文件
 
-| 文件 | 接口 | 大小 |
+| 文件 | 接口 | 说明 |
 |------|------|------|
-| api-articles.json | GET /api/articles | 包含 11 篇文章 |
-| api-stats.json | GET /api/stats/overview | 数据库统计 |
-| api-links.json | GET /api/links | 友链数据 |
-| api-announcements.json | GET /api/announcements | 公告数据 |
-| api-about.json | GET /api/about | 关于内容 |
+| `api-articles.json` | GET /api/articles | 文章列表（分页） |
+| `api-articles-pretty.json` | GET /api/articles | 格式化版文章列表 |
+| `api-comments.json` | GET /api/comments/:articleId | 评论嵌套数据 |
+| `api-stats.json` | GET /api/stats/overview | 数据库统计 |
+| `api-tags.json` | GET /api/articles/tags/cloud | 标签云 |
+| `api-links.json` | GET /api/links | 友链数据 |
+| `api-about.json` | GET /api/about | 关于内容 |
+| `api-announcements.json` | GET /api/announcements | 公告数据 |
+
+## 七、前端页面截图（7 张）
+
+| 文件 | 页面/功能 |
+|------|----------|
+| `55bd0a9da1e6f5aef027a00369c8d384.png` | 首页 |
+| `13628c07d0d0917c8035f1d828abe773.png` | 文章详情 |
+| `182193b416b712717843af3f704cd175.png` | Markdown 编辑器 |
+| `2245c41aada54e4544f65834187df861.png` | 评论嵌套回复 |
+| `6bfac5d3296b4e3bd69369ffd5a7d67c.png` | 暗色模式 |
+| `7cc96277b733f3c59bbd7948727dd74a.png` | 文章归档 |
+| `a046ae1d5b413afa876db726912d0e95.png` | 登录/注册 |
 
 ---
 
-> 📸 截图包版本：v1.0 | 生成时间：2026-07-18
-> 💡 补充说明：实际网页截图需用浏览器打开 http://localhost:5173 后自行截图，或使用下面"演示录屏"部分的方法录制。
+> 📸 截图包版本：v2.0 | 生成时间：2026-07-19
+> 💡 补充说明：完整演示视频请见 GitHub Release: https://github.com/JinXxx0822/personal-blog/releases/tag/v1.0-demo

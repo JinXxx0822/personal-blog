@@ -301,11 +301,13 @@ MIT
 
 ## 📚 提交物清单
 
-| 文档 | 说明 |
-|------|------|
-| [README.md](./README.md) | 项目介绍/技术栈/安装运行指南 |
-| [API_DOCS.md](./API_DOCS.md) | 完整接口文档 (30+ API) |
-| [prompt_log.md](./prompt_log.md) | AI 使用过程记录与 Prompt 日志 |
-| [CODE_REVIEW.md](./CODE_REVIEW.md) | AI Code Review 报告 |
-| [SUMMARY.md](./SUMMARY.md) | 个人实训总结报告 (750字) |
-| [演示录屏](https://github.com/JinXxx0822/personal-blog/releases/tag/v1.0-demo) | 项目功能演示视频（GitHub Release） |
+| 分类 | 文档/目录 | 说明 |
+|------|------|------|
+| **源码** | [`client/`](./client/) + [`server/`](./server/) | 前后端完整源码（部署失效兜底） |
+| **文档** | [`README.md`](./README.md) | 项目介绍/技术栈/安装运行指南 |
+| **文档** | [`API_DOCS.md`](./API_DOCS.md) | 完整接口文档 (30+ API) |
+| **文档** | [`prompt_log.md`](./prompt_log.md) | AI 使用过程记录与 Prompt 日志 |
+| **文档** | [`CODE_REVIEW.md`](./CODE_REVIEW.md) | AI Code Review 报告 |
+| **文档** | [`SUMMARY.md`](./SUMMARY.md) | 个人实训总结报告 |
+| **截图包** | [`screenshots/`](./screenshots/) | 数据库结构 + API JSON + Code Review + 页面截图 |
+| **演示** | [GitHub Release](https://github.com/JinXxx0822/personal-blog/releases/tag/v1.0-demo) | 项目功能演示视频 |
