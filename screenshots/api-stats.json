@@ -1,0 +1,23 @@
+﻿{
+    "status":  "ok",
+    "database":  {
+                     "file":  "server/blog.db",
+                     "sizeBytes":  106496,
+                     "sizeKB":  104
+                 },
+    "counts":  {
+                   "articles":  11,
+                   "announcements":  0,
+                   "favorites":  0,
+                   "users":  2,
+                   "likes":  0,
+                   "links":  0,
+                   "comments":  1
+               },
+    "hotArticle":  {
+                       "title":  "Vue 3 入门指南：从零搭建前端项目",
+                       "views":  4,
+                       "likes":  0
+                   },
+    "timestamp":  "2026-07-18T15:22:34.094Z"
+}
