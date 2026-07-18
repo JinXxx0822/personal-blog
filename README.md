@@ -9,7 +9,18 @@
 
 一个功能完整、界面精美的前后端分离个人博客系统，使用 AI 辅助开发。
 
-**在线演示**：[EdgeOne Pages 部署中] — 本地启动访问 `http://localhost:5173`
+**在线演示**：EdgeOne Pages 已部署，点击下方链接访问，本地启动访问 `http://localhost:5173`
+
+## 🌐 线上访问
+
+| 服务 | 地址 |
+|------|------|
+| 前端页面 | https://personal-dpkrx3sdot8v.edgeone.dev |
+| 后端 API | http://localhost:3000/api （本地运行） |
+
+> **部署平台**：腾讯云 EdgeOne Pages 静态托管
+> 
+> 说明：后端服务当前为本地运行，演示时请使用 `npm run dev` 启动；前端页面已部署到 EdgeOne Pages，可直接访问。考核兜底方式见下方「部署上线」。
 
 ---
 
@@ -211,14 +222,27 @@ POST /api/comments
 
 ## 🚢 部署上线
 
-参考平台推荐（均为免费）：
+### 当前线上部署
+
+| 项目 | 平台 | 状态 | 地址 |
+|------|------|------|------|
+| 前端页面 | EdgeOne Pages | ✅ 已部署 | https://personal-dpkrx3sdot8v.edgeone.dev |
+| 后端 API | 本地服务 | ⚠️ 本地运行 | http://localhost:3000/api |
+
+### 本地演示（推荐）
+
+```bash
+npm run dev
+# 前端 http://localhost:5173
+# 后端 http://localhost:3000/api
+```
+
+### 其他可选平台
 
 | 服务 | 推荐平台 | 说明 |
 |------|---------|------|
 | 前端 | [Vercel](https://vercel.com) / [Netlify](https://netlify.com) | 静态站点托管 |
 | 后端 | [Render](https://render.com) / [Railway](https://railway.app) | Node.js 服务托管 |
-
-部署时需修改 `client/vite.config.js` 中的代理地址为实际后端 URL。
 
 ---
 
