@@ -1,11 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const db = require('./database');
 const articlesRouter = require('./routes/articles');
 const commentsRouter = require('./routes/comments');
 const usersRouter = require('./routes/users');
 const linksRouter = require('./routes/links');
 const aboutRouter = require('./routes/about');
 const announcementsRouter = require('./routes/announcements');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +28,37 @@ app.use('/api/announcements', announcementsRouter);
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: '博客系统后端运行正常' });
+});
+
+// 数据库统计概览（用于考核截图）
+app.get('/api/stats/overview', (req, res) => {
+  const tables = ['articles', 'comments', 'users', 'links', 'announcements', 'favorites', 'likes'];
+  const counts = {};
+  const dbPath = path.join(__dirname, 'blog.db');
+  const dbSize = fs.existsSync(dbPath) ? fs.statSync(dbPath).size : 0;
+
+  let pending = tables.length;
+  tables.forEach((table) => {
+    db.get(`SELECT COUNT(*) AS count FROM ${table}`, (err, row) => {
+      counts[table] = err ? 0 : row.count;
+      pending--;
+      if (pending === 0) {
+        db.get('SELECT title, views, likes FROM articles ORDER BY views DESC LIMIT 1', (err, hot) => {
+          res.json({
+            status: 'ok',
+            database: {
+              file: 'server/blog.db',
+              sizeBytes: dbSize,
+              sizeKB: Math.round(dbSize / 1024 * 100) / 100,
+            },
+            counts,
+            hotArticle: err ? null : hot,
+            timestamp: new Date().toISOString(),
+          });
+        });
+      }
+    });
+  });
 });
 
 // 错误处理中间件
